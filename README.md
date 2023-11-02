@@ -8,6 +8,7 @@
 | PCB Unlimited | N/A | About $66/bd |
 
 Notes: These bids do not include the screens
+Todo: Confirm AA bid includes the parts
 
 
 
