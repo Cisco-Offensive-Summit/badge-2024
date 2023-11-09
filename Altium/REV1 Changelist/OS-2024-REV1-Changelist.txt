@@ -9,4 +9,5 @@ Fun Suggestion - The orange LED on the Front is D2, if we make the resistor for 
 Label S2 as RESET on the PCB!!
 Label S3 as BOOTLOADER on the PCB!!
 S1 does not sit flat on the PCB!!
+Add polarity markers to the LED's on top of the board (D3, D4, D5, D6)!! 
 
