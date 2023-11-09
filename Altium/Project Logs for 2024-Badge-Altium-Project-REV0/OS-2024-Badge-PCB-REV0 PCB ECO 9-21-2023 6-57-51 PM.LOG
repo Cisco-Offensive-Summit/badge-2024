@@ -1,0 +1,17 @@
+Added Pin To Net: NetName=NetTP1_1 Pin=TP1-1
+Added Pin To Net: NetName=I2C-SDA Pin=TP4-1
+Added Pin To Net: NetName=NP-DATA Pin=TP5-1
+Added Pin To Net: NetName=EN Pin=TP22-1
+Added Pin To Net: NetName=TXD-OUT Pin=TP23-1
+Added Pin To Net: NetName=DTR Pin=TP26-1
+Added Pin To Net: NetName=RTS Pin=TP27-1
+Added Pin To Net: NetName=NetTP35_1 Pin=TP35-1
+Added Member To Class: ClassName=OS-2024-Badge-Schematic-REV0 Member=Component TP1 Test Point
+Added Member To Class: ClassName=OS-2024-Badge-Schematic-REV0 Member=Component TP4 Test Point
+Added Member To Class: ClassName=OS-2024-Badge-Schematic-REV0 Member=Component TP5 Test Point
+Added Member To Class: ClassName=OS-2024-Badge-Schematic-REV0 Member=Component TP22 Test Point
+Added Member To Class: ClassName=OS-2024-Badge-Schematic-REV0 Member=Component TP23 Test Point
+Added Member To Class: ClassName=OS-2024-Badge-Schematic-REV0 Member=Component TP26 Test Point
+Added Member To Class: ClassName=OS-2024-Badge-Schematic-REV0 Member=Component TP27 Test Point
+Added Member To Class: ClassName=OS-2024-Badge-Schematic-REV0 Member=Component TP35 Test Point
+Added Room: Name=OS-2024-Badge-Schematic-REV0

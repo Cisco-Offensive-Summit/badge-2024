@@ -1,0 +1,12 @@
+
+2024 Badge REV 0 to REV1 modifications:
+
+Addressable LED thruholes are not big enough!!
+The schematic description for R10 is incorrect; it says RES SMD 1K OHM 5% 1/10W 0603 but its actually RES SMD 2K OHM 5% 1/10W 0603!!!
+The schematic description for R8, R9 is incorrect; it says RES SMD 47K OHM 5% 1/10W 0603 but its actually RES 10K OHM 5% 1/10W 0603!!!
+The thruholes for the removable pins (P2, P5) are too small!!  The first two of the P2 display connector are big enough, change the rest in P2 and P5 to match!!
+Fun Suggestion - The orange LED on the Front is D2, if we make the resistor for it R2 then we can arrange it to say R2/D2 on the PCB!!!
+Label S2 as RESET on the PCB!!
+Label S3 as BOOTLOADER on the PCB!!
+S1 does not sit flat on the PCB!!
+

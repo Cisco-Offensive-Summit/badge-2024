@@ -1,0 +1,62 @@
+Protel Design System Design Rule Check
+PCB File : C:\Users\jed\Desktop\2024-Badge\OS-2024-Badge-PCB-REV0.PcbDoc
+Date     : 9/27/2023
+Time     : 1:59:16 PM
+
+Processing Rule : Clearance Constraint (Gap=5mil) (InNet('DP')),(InNet('DM'))
+Rule Violations :0
+
+Processing Rule : Clearance Constraint (Gap=20mil) ((InPolygon AND InNet('3.3V'))),((InPolygon AND InNet('GND')))
+Rule Violations :0
+
+Processing Rule : Clearance Constraint (Gap=6mil) (All),(All)
+Rule Violations :0
+
+Processing Rule : Clearance Constraint (Gap=5mil) (InNetClass('USB')),(InNet('GND'))
+Rule Violations :0
+
+Processing Rule : Short-Circuit Constraint (Allowed=No) (All),(All)
+Rule Violations :0
+
+Processing Rule : Un-Routed Net Constraint ( (All) )
+Rule Violations :0
+
+Processing Rule : Width Constraint (Min=9.5mil) (Max=9.5mil) (Preferred=9.5mil) (InNetClass('USB'))
+Rule Violations :0
+
+Processing Rule : Width Constraint (Min=8mil) (Max=25mil) (Preferred=8mil) (All)
+Rule Violations :0
+
+Processing Rule : Routing Layers(All)
+Rule Violations :0
+
+Processing Rule : Routing Via (MinHoleWidth=15mil) (MaxHoleWidth=15mil) (PreferredHoleWidth=15mil) (MinWidth=30mil) (MaxWidth=30mil) (PreferedWidth=30mil) (All)
+Rule Violations :0
+
+Processing Rule : Differential Pairs Uncoupled Length using the Gap Constraints (Min=10mil) (Max=10mil) (Prefered=10mil)  and Width Constraints (Min=15mil) (Max=15mil) (Prefered=15mil) (All)
+Rule Violations :0
+
+Processing Rule : Power Plane Connect Rule(Relief Connect )(Expansion=20mil) (Conductor Width=10mil) (Air Gap=10mil) (Entries=4) (All)
+Rule Violations :0
+
+Processing Rule : Hole Size Constraint (Min=15mil) (Max=270mil) (All)
+Rule Violations :0
+
+Processing Rule : Pads and Vias to follow the Drill pairs settings
+Rule Violations :0
+
+Processing Rule : Hole To Hole Clearance (Gap=10mil) (All),(All)
+Rule Violations :0
+
+Processing Rule : Minimum Solder Mask Sliver (Gap=2.5mil) (All),(All)
+Rule Violations :0
+
+Processing Rule : Silk To Solder Mask (Clearance=3mil) (IsPad),(All)
+Rule Violations :0
+
+Processing Rule : Net Antennae (Tolerance=0mil) (All)
+Rule Violations :0
+
+
+Violations Detected : 0
+Time Elapsed        : 00:00:03

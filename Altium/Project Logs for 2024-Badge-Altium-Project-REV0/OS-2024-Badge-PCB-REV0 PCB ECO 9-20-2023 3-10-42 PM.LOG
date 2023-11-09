@@ -1,0 +1,18 @@
+Added Component: Designator=Q3(SOT-23-P)
+Add component. Clean all parameters for all variants
+Add component (AddParameter): Name = "Distributor"; Value = "Digikey"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Distributor Part Number"; Value = "DMG3415UDICT-ND"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer"; Value = "Diodes Incorporated"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer Part Number"; Value = "DMG3415U-7"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "MFG-Comment"; Value = ""; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Price"; Value = ""; VariantName = "[No Variations]"
+Added Pin To Net: NetName=NetC19_1 Pin=Q3-D
+Added Pin To Net: NetName=NP-PWR Pin=Q3-G
+Added Pin To Net: NetName=3.3V Pin=Q3-S
+Added Member To Class: ClassName=OS-2024-Badge-Schematic-REV0 Member=Component Q3 DMG3415U-7
+Added Member To Class: ClassName=OS-2024-Badge-Schematic-REV0 Member=Component S3 SPST-NO
+Added Member To Class: ClassName=OS-2024-Badge-Schematic-REV0 Member=Component TP25 Test Point
+Added Member To Class: ClassName=OS-2024-Badge-Schematic-REV0 Member=Component TP36 Test Point
+Added Member To Class: ClassName=OS-2024-Badge-Schematic-REV0 Member=Component TP39 Test Point
+Added Member To Class: ClassName=OS-2024-Badge-Schematic-REV0 Member=Component TP40 Test Point
+Added Room: Name=OS-2024-Badge-Schematic-REV0
