@@ -1,0 +1,12 @@
+Output: NC Drill Files
+Type  : NC Drill
+From  : PCB Document [OS-2024-Badge-PCB-REV0.PcbDoc]
+   Generated File[OS-2024-Badge-PCB-REV0.TXT]
+   Generated File[OS-2024-Badge-PCB-REV0.LDP]
+   Generated File[OS-2024-Badge-PCB-REV0.DRR]
+
+
+Files Generated   : 3
+Documents Printed : 0
+
+Finished Output Generation At 1:59:55 PM On 9/27/2023

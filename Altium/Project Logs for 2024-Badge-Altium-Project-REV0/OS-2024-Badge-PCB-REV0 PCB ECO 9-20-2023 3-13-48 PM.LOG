@@ -1,0 +1,46 @@
+Added Component: Designator=P3(AMPHENOL_62684-402100ALF)
+Add component. Clean all parameters for all variants
+Add component (AddParameter): Name = "Distributor"; Value = "Digi-Key"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Distributor Part Number"; Value = "609-1200-1-ND"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer"; Value = "Amphenol ICC (FCI)"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer Part Number"; Value = "62684-402100ALF"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "MFG-Comment"; Value = ""; VariantName = "[No Variations]"
+Added Pin To Net: NetName=CS-D2 Pin=P3-1
+Added Pin To Net: NetName=BUSY-D2 Pin=P3-2
+Added Pin To Net: NetName=GND Pin=P3-3
+Added Pin To Net: NetName=CLK-SCL Pin=P3-4
+Added Pin To Net: NetName=MOSI-SDA Pin=P3-5
+Added Pin To Net: NetName=MISO-D2 Pin=P3-6
+Added Pin To Net: NetName=RESET-D2 Pin=P3-7
+Added Pin To Net: NetName=BORDER Pin=P3-8
+Added Pin To Net: NetName=NetC5_2 Pin=P3-9
+Added Pin To Net: NetName=NetC6_1 Pin=P3-12
+Added Pin To Net: NetName=NetC6_2 Pin=P3-13
+Added Pin To Net: NetName=NetC7_1 Pin=P3-14
+Added Pin To Net: NetName=NetC7_2 Pin=P3-15
+Added Pin To Net: NetName=NetC8_1 Pin=P3-16
+Added Pin To Net: NetName=NetC8_2 Pin=P3-17
+Added Pin To Net: NetName=NetC9_1 Pin=P3-18
+Added Pin To Net: NetName=NetC9_2 Pin=P3-19
+Added Pin To Net: NetName=NetC10_2 Pin=P3-20
+Added Pin To Net: NetName=NetC10_1 Pin=P3-21
+Added Pin To Net: NetName=NetC11_2 Pin=P3-22
+Added Pin To Net: NetName=NetC11_1 Pin=P3-23
+Added Pin To Net: NetName=NetC12_2 Pin=P3-24
+Added Pin To Net: NetName=NetC12_1 Pin=P3-25
+Added Pin To Net: NetName=NetC13_2 Pin=P3-26
+Added Pin To Net: NetName=NetC13_1 Pin=P3-27
+Added Pin To Net: NetName=NetC15_2 Pin=P3-28
+Added Pin To Net: NetName=NetC15_1 Pin=P3-29
+Added Pin To Net: NetName=NetP3_30 Pin=P3-30
+Added Pin To Net: NetName=3.3V Pin=P3-31
+Added Pin To Net: NetName=3.3V Pin=P3-32
+Added Pin To Net: NetName=GND Pin=P3-33
+Added Pin To Net: NetName=NetC16_1 Pin=P3-34
+Added Pin To Net: NetName=NetC17_1 Pin=P3-35
+Added Pin To Net: NetName=NetC18_1 Pin=P3-36
+Added Pin To Net: NetName=NetC21_1 Pin=P3-37
+Added Pin To Net: NetName=BORDER Pin=P3-38
+Added Pin To Net: NetName=VSTVC Pin=P3-39
+Added Pin To Net: NetName=VSTVC Pin=P3-40
+Added Member To Class: ClassName=OS-2024-Badge-Schematic-REV0 Member=Component P3 CONN FPC TOP 40POS 0.5MM R/A

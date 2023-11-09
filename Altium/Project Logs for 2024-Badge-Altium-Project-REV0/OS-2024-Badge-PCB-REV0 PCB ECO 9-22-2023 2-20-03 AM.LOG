@@ -1,0 +1,43 @@
+Removed Pin From Net: NetName=3.3V Pin=P3-31
+Removed Pin From Net: NetName=3.3V Pin=P3-32
+Removed Pin From Net: NetName=3.3V Pin=R11-1
+Removed Pin From Net: NetName=DISCHARGE Pin=R11-2
+Change Component Comment : Designator=Q3 Old Comment=DMG3415U-7 New Comment=DMP2045U
+Change component parameters: Designator = "Q3"; Footprint = "SOT-23-P"; UniqueID = "\RJTXOOGD"
+Change component parameters. Clean all parameters for all variants
+Change component parameters (AddParameter): Name = "Distributor"; Value = "Digikey"; VariantName = "[No Variations]"
+Change component parameters (AddParameter): Name = "Distributor Part Number"; Value = "DMP2045U-7DICT-ND"; VariantName = "[No Variations]"
+Change component parameters (AddParameter): Name = "Manufacturer"; Value = "Diodes Incorporated"; VariantName = "[No Variations]"
+Change component parameters (AddParameter): Name = "Manufacturer Part Number"; Value = "DMP2045U-7"; VariantName = "[No Variations]"
+Change component parameters (AddParameter): Name = "MFG-Comment"; Value = ""; VariantName = "[No Variations]"
+Change component parameters: Designator = "P5"; Footprint = "Micro-Lipo-USBC"; UniqueID = "\TELSPKGY"
+Change component parameters. Clean all parameters for all variants
+Change component parameters (AddParameter): Name = "Distributor"; Value = "Digikey"; VariantName = "[No Variations]"
+Change component parameters (AddParameter): Name = "Distributor Part Number"; Value = "ED90446-ND "; VariantName = "[No Variations]"
+Change component parameters (AddParameter): Name = "Manufacturer"; Value = "Mill-Max"; VariantName = "[No Variations]"
+Change component parameters (AddParameter): Name = "Manufacturer Part Number"; Value = "7406-0-15-15-18-27-10-0"; VariantName = "[No Variations]"
+Change component parameters (AddParameter): Name = "MFG-Comment"; Value = "5 each for P5"; VariantName = "[No Variations]"
+Change component parameters: Designator = "P2"; Footprint = "TFT144SPI"; UniqueID = "\SGDIQFKM"
+Change component parameters. Clean all parameters for all variants
+Change component parameters (AddParameter): Name = "Distributor"; Value = "DigiKey"; VariantName = "[No Variations]"
+Change component parameters (AddParameter): Name = "Distributor Part Number"; Value = "ED90446-ND"; VariantName = "[No Variations]"
+Change component parameters (AddParameter): Name = "Manufacturer"; Value = "Mill-Max"; VariantName = "[No Variations]"
+Change component parameters (AddParameter): Name = "Manufacturer Part Number"; Value = "7406-0-15-15-18-27-10-0"; VariantName = "[No Variations]"
+Change component parameters (AddParameter): Name = "MFG-Comment"; Value = "8 each for P2"; VariantName = "[No Variations]"
+Change component parameters (AddParameter): Name = "Old Header"; Value = "S7006-ND"; VariantName = "[No Variations]"
+Added Component: Designator=Q4(SOT-23-P)
+Add component. Clean all parameters for all variants
+Add component (AddParameter): Name = "Distributor"; Value = "Digikey"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Distributor Part Number"; Value = "DMP2045U-7DICT-ND"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer"; Value = "Diodes Incorporated"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer Part Number"; Value = "DMP2045U-7"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "MFG-Comment"; Value = ""; VariantName = "[No Variations]"
+Added Pin To Net: NetName=3.3V Pin=Q4-D
+Added Pin To Net: NetName=GND Pin=Q4-G
+Added Pin To Net: NetName=DISCHARGE Pin=R11-1
+Added Pin To Net: NetName=GND Pin=R11-2
+Added Pin To Net: NetName=NetP3_31 Pin=P3-31
+Added Pin To Net: NetName=NetP3_31 Pin=P3-32
+Added Pin To Net: NetName=NetP3_31 Pin=Q4-S
+Added Net: Name=NetP3_31
+Added Member To Class: ClassName=OS-2024-Badge-Schematic-REV0 Member=Component Q4 DMP2045U

@@ -1,0 +1,18 @@
+Removed Parameter ComponentLink1Description:Manufacturer Link from Part Q?
+Removed Parameter ComponentLink1URL:http://www.irf.com/ from Part Q?
+Removed Parameter DatasheetVersion:PD-9.390D from Part Q?
+Removed Parameter LatestRevisionDate:17-Jul-2002 from Part Q?
+Removed Parameter LatestRevisionNote:Re-released for DXP Platform. from Part Q?
+Removed Parameter Note:Pin 4 not drawn and electrically connected to Pin 2. from Part Q?
+Removed Parameter PackageDescription:TO, Thru-Hole, Vertical, Heatsink Mounted; 3 In-Line Leads; Pitch 2.54 mm from Part Q?
+Removed Parameter PackageReference:TO-220AB from Part Q?
+Removed Parameter PackageVersion:Feb-1997 from Part Q?
+Removed Parameter Published:8-Jun-2000 from Part Q?
+Removed Parameter Publisher:Altium Limited from Part Q?
+Change Component Parameter Comment in Q? Old= New=DMG3415U-7
+Change Component Parameter Footprint in Q? Old=TO-220AB New=SOT-23-P
+Added Parameter Distributor=Digikey to Part Q?
+Added Parameter Distributor Part Number=DMG3415UDICT-ND to Part Q?
+Added Parameter Manufacturer=Diodes Incorporated to Part Q?
+Added Parameter Manufacturer Part Number=DMG3415U-7 to Part Q?
+Added Parameter MFG-Comment= to Part Q?
