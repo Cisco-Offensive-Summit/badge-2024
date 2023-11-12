@@ -182,3 +182,8 @@ Full list of friendly name defines:
 | 11       | TFT_MOSI                |
 | 12       | TFT_CLKS                |
 | 13       | TFT_DC                  |
+
+## TODO
+
+- [ ] Get E-INK display set up in firmware
+- [ ] Get Double Tap firmware update working (uf2 file)
