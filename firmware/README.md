@@ -59,7 +59,6 @@ Links:
       make BOARD=offsummit_2024 -j 8
       ```
 
-<!-- ` -->
 ## Useful defines
 
 All GPIO pins (except GPIO0 which is attached to the BOOT button) can be
@@ -75,7 +74,7 @@ object board.GPIO8 is of type Pin
 ```
 
 
-The UART and STEMMA-I2C devices are configured by default.
+The UART and STEMMA-I2C connectors are configured on startup.
 
 EX:
 ```
@@ -165,21 +164,21 @@ EX:
 
 Full list of friendly name defines:
 
-| GPIO PIN | Friendly Name |
-| -------- | ------------- |
-| 43       | TX            |
-| 44       | RX            |
-| 3        | SCL           |
-| 4        | SDA           |
-| 5        | NEOPIXEL      |
-| 48       | NP_PWR        |
-| 0        | BOOT          |
-| 7        | BTN1          |
-| 15       | BTN2          |
-| 16       | BTN3          |
-| 17       | BTN4          |
-| 8        | TFT_RST       |
-| 10       | TFT_CS        |
-| 11       | TFT_MOSI      |
-| 12       | TFT_CLKS      |
-| 13       | TFT_DC        |
+| GPIO PIN | Friendly Name           |
+| -------- | ----------------------- |
+| 43       | TX                      |
+| 44       | RX                      |
+| 3        | SCL                     |
+| 4        | SDA                     |
+| 5        | NEOPIXEL                |
+| 48       | NEOPIXEL_POWER_INVERTED |
+| 0        | BOOT                    |
+| 7        | BTN1                    |
+| 15       | BTN2                    |
+| 16       | BTN3                    |
+| 17       | BTN4                    |
+| 8        | TFT_RST                 |
+| 10       | TFT_CS                  |
+| 11       | TFT_MOSI                |
+| 12       | TFT_CLKS                |
+| 13       | TFT_DC                  |
