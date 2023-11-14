@@ -14,7 +14,19 @@ CIRCUITPY_ESP_PSRAM_SIZE = 8MB
 CIRCUITPY_ESP_PSRAM_MODE = opi
 CIRCUITPY_ESP_PSRAM_FREQ = 80m
 
+# Specify core modules
+CIRCUITPY_STAGE = 1
+
 # Include these Python libraries in firmware.
+FROZEN_MPY_DIRS += $(TOP)/frozen/Adafruit_CircuitPython_BLE
+FROZEN_MPY_DIRS += $(TOP)/frozen/Adafruit_CircuitPython_BusDevice
+FROZEN_MPY_DIRS += $(TOP)/frozen/Adafruit_CircuitPython_Display_Shapes
+FROZEN_MPY_DIRS += $(TOP)/frozen/Adafruit_CircuitPython_FakeRequests
+FROZEN_MPY_DIRS += $(TOP)/frozen/Adafruit_CircuitPython_IRRemote
+FROZEN_MPY_DIRS += $(TOP)/frozen/Adafruit_CircuitPython_Display_Text
+FROZEN_MPY_DIRS += $(TOP)/frozen/Adafruit_CircuitPython_ProgressBar
+FROZEN_MPY_DIRS += $(TOP)/frozen/Adafruit_CircuitPython_Register
 FROZEN_MPY_DIRS += $(TOP)/frozen/Adafruit_CircuitPython_NeoPixel
 FROZEN_MPY_DIRS += $(TOP)/frozen/Adafruit_CircuitPython_Requests
-FROZEN_MPY_DIRS += $(TOP)/frozen/Adafruit_CircuitPython_Display_Text
+FROZEN_MPY_DIRS += $(TOP)/frozen/Adafruit_CircuitPython_asyncio
+FROZEN_MPY_DIRS += $(TOP)/frozen/circuitpython-stage

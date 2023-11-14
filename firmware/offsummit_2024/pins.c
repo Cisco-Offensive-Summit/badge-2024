@@ -75,7 +75,18 @@ STATIC const mp_rom_map_elem_t board_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_TFT_MOSI),   MP_ROM_PTR(&pin_GPIO11)  },
     { MP_ROM_QSTR(MP_QSTR_TFT_CLKS),   MP_ROM_PTR(&pin_GPIO12)  },
     { MP_ROM_QSTR(MP_QSTR_TFT_DC),   MP_ROM_PTR(&pin_GPIO13)  },
-    { MP_ROM_QSTR(MP_QSTR_DISPLAY_OLED), MP_ROM_PTR(&displays[0].display) },
+    { MP_ROM_QSTR(MP_QSTR_DISPLAY_LCD), MP_ROM_PTR(&displays[0].display) },
+    //  E-INK Display
+    { MP_ROM_QSTR(MP_QSTR_EINK_CS),   MP_ROM_PTR(&pin_GPIO18)  },
+    { MP_ROM_QSTR(MP_QSTR_EINK_BUSY),   MP_ROM_PTR(&pin_GPIO38)  },
+    { MP_ROM_QSTR(MP_QSTR_EINK_CLKS),   MP_ROM_PTR(&pin_GPIO12)  },
+    { MP_ROM_QSTR(MP_QSTR_EINK_MOSI),   MP_ROM_PTR(&pin_GPIO11)  },
+    { MP_ROM_QSTR(MP_QSTR_EINK_MISO),   MP_ROM_PTR(&pin_GPIO9)  },
+    { MP_ROM_QSTR(MP_QSTR_EINK_RST),   MP_ROM_PTR(&pin_GPIO45)  },
+    //{ MP_ROM_QSTR(MP_QSTR_EINKBORDER),   MP_ROM_PTR(&pin_GPIO8)  }, // Seems like its not connected to ESP32
+    //{ MP_ROM_QSTR(MP_QSTR_EINKVSTVC),   MP_ROM_PTR(&pin_GPIO8)  }, // Seems like its not connected to ESP32
+    { MP_ROM_QSTR(MP_QSTR_EINK_DISCHARGE),   MP_ROM_PTR(&pin_GPIO21)  },
+
     
 };
 MP_DEFINE_CONST_DICT(board_module_globals, board_module_globals_table);

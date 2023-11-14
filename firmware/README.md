@@ -143,14 +143,14 @@ BTN is down
 ```
 
 
-The OLED display is enabled and ready to use:
+The TFT LCD display is enabled and ready to use:
 
 EX:
 ```
 >>> import board
 >>> import displayio
 >>>
->>> display = board.DISPLAY_OLED
+>>> display = board.DISPLAY_LCD
 >>> splash = displayio.Group()
 >>> display.root_group = splash
 >>> color_bitmap = displayio.Bitmap(128, 128, 1)
@@ -182,6 +182,13 @@ Full list of friendly name defines:
 | 11       | TFT_MOSI                |
 | 12       | TFT_CLKS                |
 | 13       | TFT_DC                  |
+| 18       | EINK_CS                 |
+| 38       | EINK_BUSY               |
+| 12       | EINK_CLKS               |
+| 11       | EINK_MOSI               |
+| 9        | EINK_MISO               |
+| 45       | EINK_RST                |
+| 21       | EINK_DISCHARGE          |
 
 ## TODO
 

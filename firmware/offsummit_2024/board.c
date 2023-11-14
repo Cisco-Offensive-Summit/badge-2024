@@ -41,7 +41,7 @@ uint8_t display_init_sequence[] = {
     0x36, 0x01, 0x08,  // _MADCTL
 //    0x21, DELAY, 0x0A,  // _INVON Hack and Delay 10ms
     0x13, DELAY, 0x0A,  // _NORON and Delay 10ms
-    0x36, 0x01, 0xC0,  // _MADCTL
+    0x36, 0x01, 0x60,  // _MADCTL
     0x29, DELAY, 0xFF,  // _DISPON and Delay 500ms
 };
 
@@ -80,9 +80,9 @@ static void display_init(void) {
         bus,
         128,            // width (after rotation)
         128,            // height (after rotation)
-        2,             // column start
-        3,             // row start
-        270,             // rotation
+        1,             // column start
+        2,             // row start
+        0,             // rotation
         16,             // color depth
         false,          // grayscale
         false,          // pixels in a byte share a row. Only valid for depths < 8
