@@ -42,3 +42,5 @@
 #define DEFAULT_UART_BUS_TX 		(&pin_GPIO43)
 
 #define DOUBLE_TAP_PIN 			(&pin_GPIO0)
+
+#define CIRCUITPY_PYSTACK_SIZE		(8192)
