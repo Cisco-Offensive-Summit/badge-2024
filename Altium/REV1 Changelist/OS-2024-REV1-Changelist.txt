@@ -13,4 +13,4 @@
 10. P3 pinout and part is not correct.  Currently it expects a top insertion FPC cable and expects pin1 to be in the magtag position.  The new screen requires bottom insertion FPC and the pin1 of the is on the opposite side as the magtag.  Swap the pin order of P3 and change the component to a bottom insertion FPC!!
 11. P3 position is not correct.  The magtag screen has a cable that is ~4mm longer than the E2200CS021.  Move P3 closer to the board edge (by about 4mm)!!
 12. There are no convenient places to access GND or 3.3V, add some GND and 3.3V testpoints!!
-
+13. The label for TP18 is confusing; I probed on TP8 for over an hour before I figured out I was on TP8.  Move TP18 label to the ESP side of the test point row and align correctly.  
