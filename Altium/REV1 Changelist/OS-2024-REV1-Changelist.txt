@@ -8,7 +8,7 @@
 5.  Fun Suggestion - The orange LED on the Front is D2, if we make the resistor for it R2 then we can arrange it to say R2/D2 on the PCB!!!
 6.  Label S2 as RESET on the PCB!!
 7.  Label S3 as BOOTLOADER on the PCB!!
-8.  S1 does not sit flat on the PCB!!  There are positioning bosses on the part that there is not corresponding hole in the board for.  
+8.  S1 does not sit flat on the PCB.  Add cutouts for the positioning bosses to S1.  
 9.  Add polarity markers to the LED's on top of the board (D3, D4, D5, D6)!! 
 10. P3 pinout and part is not correct.  Currently it expects a top insertion FPC cable and expects pin1 to be in the magtag position.  The new screen requires bottom insertion FPC and the pin1 of the is on the opposite side as the magtag.  Swap the pin order of P3 and change the component to a bottom insertion FPC!!
 11. P3 position is not correct.  The magtag screen has a cable that is ~4mm longer than the E2200CS021.  Move P3 closer to the board edge (by about 4mm)!!
