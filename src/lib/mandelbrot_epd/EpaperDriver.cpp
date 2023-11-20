@@ -36,7 +36,7 @@ using Status = EpaperDriver::Status;
 	#define __MSP432P401R__ false
 #endif
 
-//jed
+//jed - here are the SPI pins for our EPC display:
 #define SCK 12  //this is on the fspi bus
 #define MISO 9  //this is on the fspi bus
 #define MOSI 11 //this is on the fspi bus
@@ -313,7 +313,7 @@ int EpaperDriver::getHeight() const {
 
 Status EpaperDriver::powerOn() {
 	// Check arguments and state
-	//jed
+	//jed - we don't use the panelOnPin in our design
 	//if (panelOnPin < 0 ||
   if (
   //end jed
@@ -325,7 +325,7 @@ Status EpaperDriver::powerOn() {
 		return Status::INVALID_PIN_CONFIG;
 	
 	// Set I/O pin directions
-	//jed
+	//jed - we don't use the panelOnPin in our design
 	//pinMode(panelOnPin   , OUTPUT);
 	//end jed
 	pinMode(chipSelectPin, OUTPUT);
@@ -359,7 +359,8 @@ Status EpaperDriver::powerInit() {
 		delay(1);
 	
 	// Configure and start SPI
-	//jed
+	//jed - modify the begin call to use our specific pin definition
+	//note - the CS pin (18) is a GPIO pin, it is NOT on the FPSI bus, it is defined and used as GPIO in the mandelbrot_epd.ino file along with the other non-SPI bus display pins
 	//SPI.begin();
 	SPI.begin(SCK, MISO, MOSI);
 	//end jed
