@@ -359,7 +359,10 @@ Status EpaperDriver::powerInit() {
 		delay(1);
 	
 	// Configure and start SPI
+	//jed
+	//SPI.begin();
 	SPI.begin(SCK, MISO, MOSI);
+	//end jed
 	SPI.setBitOrder(MSBFIRST);
 	SPI.setClockDivider(SPI_CLOCK_DIV2);
 	if (__MSP432P401R__)
