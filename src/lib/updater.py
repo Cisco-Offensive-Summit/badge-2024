@@ -1,5 +1,6 @@
 import board, secrets, gc, flavortext
 import ipaddress, ssl, wifi, socketpool, adafruit_requests
+import base64
 
 HEADERS = {"Accept": "application/vnd.github+json"}
 if secrets.GH_TOKEN:
@@ -56,6 +57,26 @@ def run(debug=False):
 
     gc.collect()
 
+    print("[I] Gathering info on files to update.")
+
+    try:
+        files = get_all_files(requests, src_sha, "")
+    except Exception as e:
+        print("[X] Update Failed")
+        print("[X] {}".format(e))
+        return
+
+    dprint("Files: {}".format(files))
+
+    for (path, sha) in files:
+        print("[I] Updating file {}", path)
+        try:
+            blob = update_file(requests, path, sha)
+        except Exception as e:
+            print("[X] Update Failed")
+            print("[X] {}".format(e))
+            return
+        
 
 # Connect to wifi
 def connect_wifi():
@@ -74,6 +95,46 @@ def connect_wifi():
     
     return False
 
+# Write file to disk
+def update_file(requests, file_path, file_sha):
+    file_contents = bytes()
+    blob = get_blob(requests, file_sha).json()
+    
+    if blob["encoding"] == "base64":
+        file_contents = base64.decodebytes(blob["content"])
+    elif blob["encoding"] == "utf-8":
+        file_contents = blob["content"].encode()
+    else:
+        raise Exception("Encoding {} not recognized!".format(blob["encoding"]))
+
+    dprint("File contents: {}".format(file_contents))
+    
+
+# Get list of files to request and their paths
+def get_all_files(requests, tree_sha, pre_path):
+    files = []
+    trees = []
+
+    if pre_path != "":
+        pre_path = pre_path + "/"
+
+    dprint("Gathering data about path \'{}\'".format(pre_path))
+
+    # Get file current depth blob and tree info
+    tree_data = get_tree(requests, tree_sha).json()
+    for i in tree_data["tree"]:
+        if i["type"] == "blob":
+            dprint("Adding file: {} to list".format(pre_path + i["path"]))
+            files.append((pre_path + i["path"], i["sha"]))
+        elif i["type"] == "tree":
+            dprint("Adding tree: {} to list".format(pre_path + i["path"]))
+            trees.append((i["sha"], i["path"]))
+        
+    # Recurse through found trees
+    for (sha, path) in trees:
+        files.extend(get_all_files(requests, sha, pre_path + path))
+    
+    return files
 
 # Get the SHA hash of the src tree of our code
 def get_src_tree(requests, src_path):
