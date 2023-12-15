@@ -1,0 +1,36 @@
+Removed Parameter ComponentLink1Description:Manufacturer Link from Part D?
+Removed Parameter ComponentLink1URL:http://www.infineon.com/ from Part D?
+Removed Parameter ComponentLink2Description:Datasheet from Part D?
+Removed Parameter ComponentLink2URL:http://www.infineon.com/upload/Document/cmc_upload/documents/009/363/bat17series.pdf from Part D?
+Removed Parameter DatasheetVersion:Oct-1999 from Part D?
+Removed Parameter Distributer:Digikey from Part S?
+Removed Parameter LatestRevisionDate:29-May-2009 from Part D?
+Removed Parameter LatestRevisionNote:IPC-7351 Footprint Added. from Part D?
+Removed Parameter Note:Pin 2 is not connected and not drawn. from Part D?
+Removed Parameter PackageDescription:3-Pin SOT-23 Package 0.95 mm Pitch, 2.5 mm Lead Span from Part D?
+Removed Parameter PackageReference:SOT-23 from Part D?
+Removed Parameter PackageVersion:Sep-2001 from Part D?
+Removed Parameter Published:21-Mar-2003 from Part D?
+Removed Parameter Publisher:Altium Limited from Part D?
+Added Parameter Distributor=Digikey to Part S?
+Added Parameter Distributor= to Part D?
+Added Parameter Distributor= to Part Q?
+Added Parameter Distributor= to Part Q?
+Added Parameter Distributor= to Part Q?
+Added Parameter Distributor Part Number= to Part D?
+Added Parameter Distributor Part Number= to Part Q?
+Added Parameter Distributor Part Number= to Part Q?
+Added Parameter Distributor Part Number= to Part Q?
+Added Parameter Manufacturer= to Part D?
+Added Parameter Manufacturer= to Part Q?
+Added Parameter Manufacturer= to Part Q?
+Added Parameter Manufacturer= to Part Q?
+Added Parameter Manufacturer Part Number= to Part D?
+Added Parameter Manufacturer Part Number= to Part Q?
+Added Parameter Manufacturer Part Number= to Part Q?
+Added Parameter Manufacturer Part Number= to Part Q?
+Added Parameter MFG-Comment= to Part D?
+Added Parameter MFG-Comment= to Part Q?
+Added Parameter MFG-Comment= to Part Q?
+Added Parameter MFG-Comment= to Part Q?
+Added Parameter Value= to Part D?

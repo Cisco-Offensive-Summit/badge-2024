@@ -1,0 +1,10 @@
+Output: Generates pick and place files
+Type  : Pick Place
+From  : PCB Document [OS-2024-Badge-PCB-REV1.PcbDoc]
+   Generated File[Pick Place for OS-2024-Badge-PCB-REV1.txt]
+
+
+Files Generated   : 1
+Documents Printed : 0
+
+Finished Output Generation At 3:23:46 PM On 12/14/2023

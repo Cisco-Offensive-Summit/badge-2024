@@ -1,0 +1,8 @@
+Change component parameters: Designator = "D1"; Footprint = "0603LED"; UniqueID = "\PLJXMGJG"
+Change component parameters. Clean all parameters for all variants
+Change component parameters (AddParameter): Name = "Distributor"; Value = "Digi-Key"; VariantName = "[No Variations]"
+Change component parameters (AddParameter): Name = "Distributor Part Number"; Value = "754-1120-1-ND"; VariantName = "[No Variations]"
+Change component parameters (AddParameter): Name = "Manufacturer"; Value = "Kingbright"; VariantName = "[No Variations]"
+Change component parameters (AddParameter): Name = "Manufacturer Part Number"; Value = "AOT1608SECK"; VariantName = "[No Variations]"
+Change component parameters (AddParameter): Name = "MFG-Comment"; Value = ""; VariantName = "[No Variations]"
+Added Member To Class: ClassName=OS-2024-Badge-Schematic-REV0 Member=Component S7 SPST-NO
