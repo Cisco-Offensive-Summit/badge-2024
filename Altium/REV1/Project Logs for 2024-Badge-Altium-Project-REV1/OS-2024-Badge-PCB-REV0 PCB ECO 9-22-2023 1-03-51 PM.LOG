@@ -1,0 +1,9 @@
+Change Component Footprint: Designator=P1 Old Footprint=HDR1X7 New Footprint=HDR1X4
+Change Component Comment : Designator=P1 Old Comment=Header 7 New Comment=Header 4
+Change component parameters: Designator = "P1"; Footprint = "HDR1X4"; UniqueID = "\GIVGBBYJ"
+Change component parameters. Clean all parameters for all variants
+Change component parameters (AddParameter): Name = "Distributor"; Value = "Digi-Key"; VariantName = "[No Variations]"
+Change component parameters (AddParameter): Name = "Distributor Part Number"; Value = "732-5317-ND"; VariantName = "[No Variations]"
+Change component parameters (AddParameter): Name = "Manufacturer"; Value = "Wurth Elektronik"; VariantName = "[No Variations]"
+Change component parameters (AddParameter): Name = "Manufacturer Part Number"; Value = "61300411121"; VariantName = "[No Variations]"
+Change component parameters (AddParameter): Name = "MFG-Comment"; Value = ""; VariantName = "[No Variations]"

@@ -1,0 +1,8 @@
+Change Component Designator: OldDesignator=S2 NewDesignator=S3
+Change Component Designator: OldDesignator=S3 NewDesignator=S4
+Change Component Designator: OldDesignator=S4 NewDesignator=S5
+Change Component Designator: OldDesignator=S5 NewDesignator=S6
+Change Component Designator: OldDesignator=S6 NewDesignator=S7
+Change Component Designator: OldDesignator=S7 NewDesignator=S2
+Added Member To Class: ClassName=OS-2024-Badge-Schematic-REV0 Member=Component P2 Header 8
+Added Member To Class: ClassName=OS-2024-Badge-Schematic-REV0 Member=Component P3 CONN FPC TOP 40POS 0.5MM R/A

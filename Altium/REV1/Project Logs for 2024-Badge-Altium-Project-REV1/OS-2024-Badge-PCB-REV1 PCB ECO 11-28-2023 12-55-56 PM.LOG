@@ -1,0 +1,10 @@
+Change component parameters: Designator = "S1"; Footprint = "HDR1X3"; UniqueID = "\DYHPQUVJ"
+Change component parameters. Clean all parameters for all variants
+Change component parameters (AddParameter): Name = "Distributor"; Value = "Digikey"; VariantName = "[No Variations]"
+Change component parameters (AddParameter): Name = "Distributor Part Number"; Value = "EG1903-ND"; VariantName = "[No Variations]"
+Change component parameters (AddParameter): Name = "Manufacturer"; Value = "E-Switch"; VariantName = "[No Variations]"
+Change component parameters (AddParameter): Name = "Manufacturer Part Number"; Value = "EG1218"; VariantName = "[No Variations]"
+Change component parameters (AddParameter): Name = "MFG-Comment"; Value = ""; VariantName = "[No Variations]"
+Change Class Name : Old Net Name=OS-2024-Badge-Schematic-REV0 New Net Name=OS-2024-Badge-Schematic-REV1
+Change Room Name: Old Name=OS-2024-Badge-Schematic-REV0 New Name=OS-2024-Badge-Schematic-REV1
+Change Room Scope: Old Scope=InComponentClass('OS-2024-Badge-Schematic-REV0') New Scope=InComponentClass('OS-2024-Badge-Schematic-REV1')
