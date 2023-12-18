@@ -1,6 +1,6 @@
 import board, secrets, gc, flavortext
 import ipaddress, ssl, wifi, socketpool, adafruit_requests
-import base64
+import binascii, storage
 
 HEADERS = {"Accept": "application/vnd.github+json"}
 if secrets.GH_TOKEN:
@@ -69,7 +69,7 @@ def run(debug=False):
     dprint("Files: {}".format(files))
 
     for (path, sha) in files:
-        print("[I] Updating file {}", path)
+        print("[I] Updating file {}".format(path))
         try:
             blob = update_file(requests, path, sha)
         except Exception as e:
@@ -101,13 +101,15 @@ def update_file(requests, file_path, file_sha):
     blob = get_blob(requests, file_sha).json()
     
     if blob["encoding"] == "base64":
-        file_contents = base64.decodebytes(blob["content"])
+        file_contents = binascii.a2b_base64(blob["content"])
     elif blob["encoding"] == "utf-8":
         file_contents = blob["content"].encode()
     else:
         raise Exception("Encoding {} not recognized!".format(blob["encoding"]))
 
-    dprint("File contents: {}".format(file_contents))
+    dprint("Writing {} now!".format(file_path))
+    with open(file_path, "wb") as f:
+        f.write(file_contents)
     
 
 # Get list of files to request and their paths
