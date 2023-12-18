@@ -1,6 +1,6 @@
 import board, secrets, gc, flavortext
 import ipaddress, ssl, wifi, socketpool, adafruit_requests
-import binascii, storage
+import binascii, storage, os
 
 HEADERS = {"Accept": "application/vnd.github+json"}
 if secrets.GH_TOKEN:
@@ -20,6 +20,9 @@ def dprint(s):
     if debug_print:
         print("[D] {}".format(s))
 
+
+if __name__ == "__main__":
+    run(False)
 
 # Main app entrypoint
 def run(debug=False):
@@ -68,6 +71,8 @@ def run(debug=False):
 
     dprint("Files: {}".format(files))
 
+    gc.collect()
+
     for (path, sha) in files:
         print("[I] Updating file {}".format(path))
         try:
@@ -107,9 +112,34 @@ def update_file(requests, file_path, file_sha):
     else:
         raise Exception("Encoding {} not recognized!".format(blob["encoding"]))
 
+    # Create directory file should be in, if needed
+    index = file_path.rfind('/')
+    if index != -1:
+        dir_path = file_path[:index]
+        dprint("Creating directory {} now!".format(dir_path))
+        make_dir(dir_path)
+
     dprint("Writing {} now!".format(file_path))
     with open(file_path, "wb") as f:
         f.write(file_contents)
+    
+
+def make_dir(dir_path):
+    try:
+        os.stat(dir_path)
+        return
+    except:
+        dprint("{} does not exist yet".format(dir_path))
+    
+    dirs = list(filter(None, dir_path.split("/")))
+    tmp_dir_path = ""
+
+    for d in dirs:
+        tmp_dir_path += "/" + d
+        try:
+            os.mkdir(tmp_dir_path)
+        except OSError:
+            dprint("Directory '{}' already exists".format(tmp_dir_path))
     
 
 # Get list of files to request and their paths
