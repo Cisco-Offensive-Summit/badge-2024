@@ -1,6 +1,6 @@
-import board, busio, digitalio
+import board, busio, digitalio, time
 import fourwire
-import busdisplay
+import displayio
 
 _INIT_SEQUENCE = bytearray(
     b"\x07\xD1" # Disable OE
@@ -11,11 +11,58 @@ _INIT_SEQUENCE = bytearray(
     b"\x03\x00" # Driver latch off
 )
 
-class EPD_DRIVER(busdisplay.BusDisplay):
+#class EPD_DRIVER(displayio.EPaperDisplay):
+class EPD_DRIVER:
 
-    def __init__ (self, bus: FourWire, **kwargs: Any):
+    def __init__ (self) -> None:
         init_seq = _INIT_SEQUENCE
-        super().__init__(bus, init_seq, **kwargs)
+        
+        spi = busio.SPI(board.EINK_CLKS, board.EINK_MOSI, board.EINK_MISO)
+        while not spi.try_lock():
+            pass
+        spi.configure(baudrate=20000000, phase=0, polarity=0)
+        spi.unlock()
+
+        EPD_CS = digitalio.DigitalInOut(board.EINK_CS)
+        EPD_CS.direction = digitalio.Direction.OUTPUT
+        EPD_RST = digitalio.DigitalInOut(board.EINK_RST)
+        EPD_RST.direction = digitalio.Direction.OUTPUT
+        EPD_BUSY = digitalio.DigitalInOut(board.EINK_BUSY)
+        EPD_BUSY.direction = digitalio.Direction.INPUT
+        EPD_DISCHARGE = digitalio.DigitalInOut(board.EINK_DISCHARGE)
+        EPD_DISCHARGE.direction = digitalio.Direction.OUTPUT
+
+        EPD_CS.value = True
+        EPD_RST.value = True
+        EPD_DISCHARGE.value = False
+        time.sleep(0.005)
+
+        print("Pulsing RST pin")
+        EPD_RST.value = False
+        time.sleep(0.005)
+        EPD_RST.value = True
+        time.sleep(0.005)
+
+        print("Waiting for BUSY pin to go low.")
+        while EPD_BUSY.value == True:
+            time.sleep(0.001)
+
+        EPD_CS.value = False
+        
+        print("Checking EPD ID, expected value is 0x12")
+        EPD_id = bytearray(1)
+        while not spi.try_lock():
+            pass
+        spi.write(b'\x71')
+        spi.write_readinto(b'\x71\x00', EPD_id)
+        spi.unlock()
+
+        EPD_CS.value = False
+
+        if EPD_id != "\x12":
+            print("INIT DID NOT RETURN EXPECTED ID, EXITING.")
+
+        #super().__init__(bus, init_seq, **kwargs)
 
 
 # Testing function
@@ -24,9 +71,11 @@ def test():
     displayio.release_displays()
 
     print("Setting SPI")
-    spi = busio.SPI(board.EINK_CLKS, board.EINK_MOSI, board.EINK_MISO)
+    #spi = busio.SPI(board.EINK_CLKS, board.EINK_MOSI, board.EINK_MISO)
     print("Setting Fourwire")
-    fw = fourwire.FourWire(spi, command=None, chip_select=board.EINK_CS, reset=board.EINK_RST, baudrate=24000000)
+    #fw = fourwire.FourWire(spi, command=None, chip_select=board.EINK_CS, reset=board.EINK_RST, baudrate=24000000)
+    
+    driver = EPD_DRIVER()
 
 ### Notes
 ## Others code:
