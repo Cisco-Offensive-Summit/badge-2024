@@ -13,21 +13,28 @@ class EPD_DRIVER:
     # Bitpacked display buffer
     prev_pixels = bytearray(b'\x00' * 2400)
 
-    # frame repeat
+    # frame repeat default
     frame_repeat = 630
 
     # Set this to override frame repeat calculation
     frame_iters = None
 
+    # Return height of EPD
     # TODO: Support other sizes
-    def _get_height(self) -> int:
+    def get_height(self) -> int:
         return 96
 
+    # Return width of EPD
     # TODO: Support other sizes
-    def _get_bytes_per_line(self) -> int:
-        return int(200 / 8)
+    def get_width(self) -> int:
+        return 200
 
-    def set_frametime_by_temp(self, tmpr: int):
+    # Return how many bytes are needed for a line
+    def get_bytes_per_line(self) -> int:
+        return int(self.get_width() / 8)
+
+    # Set frametime by ambient temp
+    def set_frametime_by_temp(self, tmpr: int) -> None:
         self.frame_repeat = 630
         if   tmpr <= -10: self.frame_repeat *= 17
         elif tmpr <= -5:  self.frame_repeat *= 12
@@ -38,42 +45,69 @@ class EPD_DRIVER:
         elif tmpr <= 40:  self.frame_repeat *= 1
         else: self.frame_repeat = floor(self.frame_repeat * (7/10))
 
-
-    def _spi_write_raw(self, b1, b2):
+    # Write two raw byte array to EPD
+    # bc should only ever be 1 byte, which should either be the CommandIndex (0x70) or CommandData (0x72)
+    # bd is the data of the command:
+    ## For CommandIndex (0x70) it should only be 1 byte long and contain the relevant command byte
+    ## For CommandData (0x72) it can be many bytes
+    def _spi_write_raw(self, bc: bytes, bd: bytes) -> None:
         while not self.spi.try_lock():
             pass
         self.EPD_CS.value = False
-        self.spi.write(b1)
         
-        ret = bytearray(1)
-        self.spi.write_readinto(b2, ret)
+        self.spi.write(bc)
+        self.spi.write(bd)
+
+        self.EPD_CS.value = True
+        self.spi.unlock()
+
+    # Write CommandIndex value pair, followed immediately by CommandData value pair
+    def _spi_com_write(self, com: bytes, data:bytes) -> None:
+        self._spi_write_raw(b'\x70', com)
+        self._spi_write_raw(b'\x72', data)
+
+    # Write CommandIndex value pair, followed immediately by the CommandRead (0x73) special byte 
+    # CommandRead only supports returning 1 byte
+    def _spi_com_read(self, com: bytes) -> bytes:
+        self._spi_write_raw(b'\x70', com)
+        
+        while not self.spi.try_lock():
+            pass
+        self.EPD_CS.value = False
+
+        self.spi.write(b'\x73')
+        ret = bytearray(b'\x00')
+        self.spi.write_readinto(b'\x00', ret)
 
         self.EPD_CS.value = True
         self.spi.unlock()
 
         return ret
 
+    # Write CommandID (0x71) to EPD and return the ID value retured
+    def _get_spi_id(self) -> bytes:
+        while not self.spi.try_lock():
+            pass
+        self.EPD_CS.value = False
 
-    def _spi_com_write(self, com, data):
-        self._spi_write_raw(b'\x70', com)
-        self._spi_write_raw(b'\x72', data)
+        self.spi.write(b'\x71')
+        ret = bytearray(b'\x00')
+        self.spi.write_readinto(b'\x00', ret)
 
+        self.EPD_CS.value = True
+        self.spi.unlock()
+        
+        return ret
 
-    def _spi_com_read(self, com):
-        self._spi_write_raw(b'\x70', com)
-        return self._spi_write_raw(b'\x73', b'\x00')
-
-    
-    def _get_spi_id(self):
-        return self._spi_write_raw(b'\x71', b'\x00')
-
-    def __del__(self):
-        spi = None
+    # Destructor
+    def __del__(self) -> None:
+        spi = spi.deinit()
         EPD_CS = None
         EPD_RST = None
         EPD_BUSY = None
         EPD_DISCHARGE = None
 
+    # Init function
     def __init__(self, spi) -> None:
         self.spi = spi
         self.EPD_CS = digitalio.DigitalInOut(board.EINK_CS)
@@ -85,6 +119,7 @@ class EPD_DRIVER:
         self.EPD_DISCHARGE = digitalio.DigitalInOut(board.EINK_DISCHARGE)
         self.EPD_DISCHARGE.direction = digitalio.Direction.OUTPUT
 
+    # Powers EPD CoG driver
     def _power_on(self):
         self.EPD_CS.value = True
         self.EPD_RST.value = True
@@ -110,12 +145,8 @@ class EPD_DRIVER:
         self._spi_com_write(b"\x0B", b"\x02") # Power saving mode
         
         # Write Channel select bytes from COG driver document
-        while not self.spi.try_lock():
-            pass
-        self.EPD_CS.value = False
-        self.spi.write(b"\x70\x01\x72\x00\x00\x00\x00\x01\xFF\xE0\x00") # Channel Select
-        self.EPD_CS.value = True
-        self.spi.unlock()
+        # TODO: Support other sizes
+        self._spi_com_write(b'\x01', b'\x00\x00\x00\x00\x01\xFF\xE0\x00')
         
         self._spi_com_write(b"\x07", b"\xD1") # High power mode osc setting
         self._spi_com_write(b"\x08", b"\x02") # Power setting
@@ -138,18 +169,24 @@ class EPD_DRIVER:
                 self._spi_com_write(b'\x02', b'\x06')
                 return
         
+        # Only runs if DC/DC check fails
         self._power_off(cleanup=False)
         raise Exception("EINK display did not pass DC/DC check.")
 
+    # Gracefully power off EPD CoG Driver
     def _power_off(self, cleanup=True):
+        # Optional clean of buffer memory
+        # TODO: Support other sizes
         if cleanup:
             # Write Nothing frame
-            white_line = bytearray(b'\x00' * self._get_bytes_per_line())
-            for y in range(self._get_height()):
+            white_line = bytearray(b'\x00' * self.get_bytes_per_line())
+            for y in range(self.get_height()):
+                # Write white line, but map all values to (No Change dot (0x00 or 0x01))
                 self._draw_line(y, white_line, 0, 0, 0)
             
             # Write special border byte
             self._draw_line(0, white_line, 0, 0, 170)
+            #time.sleep(0.200)
 
         self._spi_com_write(b'\x0B', b'\x00') # Undocumented
         self._spi_com_write(b'\x03', b'\x01') # Latch reset turn on
@@ -159,6 +196,7 @@ class EPD_DRIVER:
         self._spi_com_write(b'\x04', b'\x80') # Discharge internal
         self._spi_com_write(b'\x05', b'\x00') # Power off charge pump positive voltage, VGH & VDH off
         self._spi_com_write(b'\x07', b'\x01') # Turn off osc
+        #time.sleep(0.050)
 
         self.EPD_RST.value = False
         self.EPD_CS.value = False
@@ -169,74 +207,87 @@ class EPD_DRIVER:
         self.EPD_DISCHARGE.value = False
 
     # Lookup table
+    # Maps 3 bits `& 0x5(b101)` to 4 byte EPD dot representation of the two bits we care about
+    # mapping should be all possible values of input (two bits) mapped to their corresponding 2 bit dot value each
+    ## Dot values: black = b11, white = b10, NoChange = b01 OR b00
     def _mapping(self, mapping: int, input: int) -> int:
         return (((mapping) >> (((input) & 5) << 2 )) & 15)
 
-    def _draw_line(self, row: int, pixels: bytearray, mwt: int, mbt: int, border: int):
-        # Begin spi transmission command
-        self._spi_write_raw(b'\x70', b'\x0A')
-        
-        while not self.spi.try_lock():
-            pass
-        self.EPD_CS.value = False
+    # draw a single line to EPD
+    # mwt is what value of 2 bit dot a white pixel (0x0) should be mapped to
+    # mbt is what value of 2 bit dot a black pixel (0x1) should be mapped to
+    # border should be 0x00 most of the time, except when powering off CoG driver
+    def _draw_line(self, row: int, pixels: bytearray, mwt: int, mbt: int, border: int) -> None:
+        # 'transfer' is the data header + bitpacked data we send to display
+        # less memory efficient but twice as fast as sending on the fly!
+        transfer = bytearray()
 
-        self.spi.write(b'\x72') # Begin 
+        # Append data start byte
+        #transfer.extend(b'\x72')
 
         # Border byte
         border_byte = border.to_bytes(1, 'little')
-        self.spi.write(border_byte)
+        transfer.extend(border_byte)
 
-        bytes_per_line = self._get_bytes_per_line()
+        bytes_per_line = self.get_bytes_per_line()
 
         # Send even bytes first
+        #          if both bits are white  | b1 is white & b2 is black| b1 is black & b2 is white| both bits are black
         even_map = ((mwt << 2 | mwt) << 0) | ((mwt << 2 | mbt) <<  4) | ((mbt << 2 | mwt) << 16) | ((mbt << 2 | mbt) << 20)
         for x in range(bytes_per_line-1, -1, -1):
             p = pixels[x]
             b = ((self._mapping(even_map, p >> 4) << 4) | (self._mapping(even_map, p >> 0) << 0)).to_bytes(1, 'little')
-            self.spi.write(b)
+            transfer.extend(b)
 
         # Send scan bytes
         for y in range(floor(96 / 4) - 1, -1, -1):
             if y == floor(row / 4):
                 b = (3 << ((row % 4) * 2)).to_bytes(1, 'little')
-                self.spi.write(b)
+                transfer.extend(b)
             else:
-                self.spi.write(b'\x00')
+                transfer.extend(b'\x00')
 
         # Send odd bytes
         odd_map = ((mwt << 2 | mwt) <<  0) | ((mwt << 2 | mbt) << 16) | ((mbt << 2 | mwt) <<  4) | ((mbt << 2 | mbt) << 20)
         for x in range(0, bytes_per_line, 1):
             p = pixels[x]
             b = ((self._mapping(odd_map, p >> 5) << 0) | (self._mapping(odd_map, p >> 1) << 4)).to_bytes(1, 'little')
-            self.spi.write(b)
+            transfer.extend(b)
 
-        self.EPD_CS.value = True
-        self.spi.unlock()
-
+        # Send line to CoG driver buffer
+        self._spi_com_write(b'\x0A', transfer)
+        # Flush CoG buffer to display
         self._spi_com_write(b'\x02', b'\x07')
 
-
-    def _draw_frame(self, frame: bytearray, mwt: int, mbt: int, it: int):
-        bytes_per_line = self._get_bytes_per_line()
-        height = self._get_height()
+    # Draw a frame to display 'it' number of times
+    def _draw_frame(self, frame: bytearray, mwt: int, mbt: int, it: int) -> None:
+        bytes_per_line = self.get_bytes_per_line()
+        height = self.get_height()
         for i in range(it):
             for y in range(height):
                 self._draw_line(y, frame[bytes_per_line*y:(bytes_per_line*y)+bytes_per_line], mwt, mbt, 0)
     
-
-    def change_image(self, new_pixels: bytearray):
+    # Change image to a completely new image
+    # Much slower than update method, but stops ghosting effect
+    ## Roughly 3 seconds per update at >20C ambient temp
+    def change_image(self, new_pixels: bytearray) -> None:
+        # Check if bitpacked pixels are what we expect them to be
         if not isinstance(new_pixels, bytearray):
             raise TypeError
         if len(new_pixels) != 2400:
             raise TypeError
 
+        # Power on CoG driver
         self._power_on()
 
         # Step 1: Compensate
+        ## Send negative of current image displayed to EPD
         iters = 0
+        # If frame_iters is set, just use that
         if self.frame_iters:
             iters = self.frame_iters
             self._draw_frame(self.prev_pixels, 3, 2, iters)
+        # Otherwise find how many iterations of drawing gets us to out frame_repeat number of ms
         else:
             start = ticks_ms()
             while True:
@@ -247,41 +298,63 @@ class EPD_DRIVER:
                     break
         
         # Stage 2: White
+        ## Send all white pixels
         self._draw_frame(self.prev_pixels, 2, 0, iters)
         # Stage 3: Inverse
+        ## Send Negative of new image
         self._draw_frame(new_pixels, 3, 0, iters)
         # Stage 4: Normal
+        ## Send new image
         self._draw_frame(new_pixels, 2, 3, iters)
         
+        # Ovverride stored previous image
         self.prev_pixels = new_pixels
 
+        # Power off CoG driver
         self._power_off()
 
-    
 
+epd = None
+lcd = None
 
 # Testing function
-def test():
+def test_init():
     import displayio
     import fourwire
     from adafruit_st7735r import ST7735R
     displayio.release_displays()
     
+    global epd
+    global lcd
+
     spi = busio.SPI(board.EINK_CLKS, board.EINK_MOSI, board.EINK_MISO)
     fw = fourwire.FourWire(spi, command=board.TFT_DC, chip_select=board.TFT_CS, reset=board.TFT_RST, baudrate=20000000)
 
     lcd = ST7735R(fw, width=128, height=128, colstart=2, rowstart=1, rotation=270)
 
-    driver = EPD_DRIVER(spi)
+    epd = EPD_DRIVER(spi)
 
-    bpl = driver._get_bytes_per_line()
+    test()
 
+def test():
+    import displayio, adafruit_imageload, io
+    global epd
+    global lcd
+
+    bmp, pal = adafruit_imageload.load('/epd_logo.bmp', bitmap=displayio.Bitmap, palette=displayio.Palette)
+
+    bpl = epd.get_bytes_per_line()
     pixels = bytearray(b'\x00' * 2400)
-    for y in range(20, 60, 1):
-        for x in range(2, bpl-2, 1):
-            pixels[(y*bpl)+x] = 255
+    for y in range(96):
+        for x in range(bpl):
+            for z in range(8):
+                val = 0
+                if bmp[(y*bmp.width)+(x*8)+z] == 0:
+                    val = 1
+                pixels[(y*bpl)+x] |= (val << z)
 
-    driver.change_image(pixels)
+    epd.change_image(pixels)
+
 
 ### Notes
 ## Official COG Driver pdf
