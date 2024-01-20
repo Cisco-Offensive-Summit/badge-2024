@@ -211,7 +211,7 @@ class EPD_DRIVER:
     # mapping should be all possible values of input (two bits) mapped to their corresponding 2 bit dot value each
     ## Dot values: black = b11, white = b10, NoChange = b01 OR b00
     def _mapping(self, mapping: int, input: int) -> int:
-        return (((mapping) >> (((input) & 5) << 2 )) & 15)
+        return (((mapping) >> (((input) & 0x5) << 2 )) & 0xF)
 
     # draw a single line to EPD
     # mwt is what value of 2 bit dot a white pixel (0x0) should be mapped to
@@ -231,7 +231,7 @@ class EPD_DRIVER:
 
         bytes_per_line = self.get_bytes_per_line()
 
-        # Send even bytes first
+        # Even bytes first
         #          if both bits are white  | b1 is white & b2 is black| b1 is black & b2 is white| both bits are black
         even_map = ((mwt << 2 | mwt) << 0) | ((mwt << 2 | mbt) <<  4) | ((mbt << 2 | mwt) << 16) | ((mbt << 2 | mbt) << 20)
         for x in range(bytes_per_line-1, -1, -1):
@@ -239,7 +239,7 @@ class EPD_DRIVER:
             b = ((self._mapping(even_map, p >> 4) << 4) | (self._mapping(even_map, p >> 0) << 0)).to_bytes(1, 'little')
             transfer.extend(b)
 
-        # Send scan bytes
+        # Scan bytes
         for y in range(floor(96 / 4) - 1, -1, -1):
             if y == floor(row / 4):
                 b = (3 << ((row % 4) * 2)).to_bytes(1, 'little')
@@ -247,7 +247,7 @@ class EPD_DRIVER:
             else:
                 transfer.extend(b'\x00')
 
-        # Send odd bytes
+        # Odd bytes
         odd_map = ((mwt << 2 | mwt) <<  0) | ((mwt << 2 | mbt) << 16) | ((mbt << 2 | mwt) <<  4) | ((mbt << 2 | mbt) << 20)
         for x in range(0, bytes_per_line, 1):
             p = pixels[x]
@@ -259,13 +259,49 @@ class EPD_DRIVER:
         # Flush CoG buffer to display
         self._spi_com_write(b'\x02', b'\x07')
 
+    def _update_line(self, row: int, pixels: bytearray, border: int) -> None:
+        transfer = bytearray()
+
+        # Border byte
+        border_byte = border.to_bytes(1, 'little')
+        transfer.extend(border_byte)
+
+        # Even bytes
+        for x in range(self.get_bytes_per_line()-1, -1, -1):
+            a = self.prev_pixels[row*self.get_bytes_per_line() + x]
+            b = pixels[x]
+            c = ((((a ^ b) & 0x55) << 1) | (b & 0x55)).to_bytes(1, 'little')
+            transfer.extend(c)
+        
+        # Scan bytes
+        for y in range(floor(96 / 4) - 1, -1, -1):
+            if y == floor(row / 4):
+                b = (3 << ((row % 4) * 2)).to_bytes(1, 'little')
+                transfer.extend(b)
+            else:
+                transfer.extend(b'\x00')
+
+        # Odd bytes
+        for x in range(0, self.get_bytes_per_line(), 1):
+            a = self.prev_pixels[row*self.get_bytes_per_line()+x]
+            b = pixels[x]
+            c = ((a ^ b) & 0xAA) | ((b & 0xAA) >> 1)
+            c = ((c & 0x33) << 2) | ((c >> 2) & 0x33)
+            c = (((c & 0x0F) << 4) | ((c >> 4) & 0x0F)).to_bytes(1, 'little')
+            transfer.extend(c)
+
+        # Send line to CoG driver buffer
+        self._spi_com_write(b'\x0A', transfer)
+        # Flush CoG buffer to display
+        self._spi_com_write(b'\x02', b'\x07')
+
     # Draw a frame to display 'it' number of times
     def _draw_frame(self, frame: bytearray, mwt: int, mbt: int, it: int) -> None:
-        bytes_per_line = self.get_bytes_per_line()
+        bpl = self.get_bytes_per_line()
         height = self.get_height()
         for i in range(it):
             for y in range(height):
-                self._draw_line(y, frame[bytes_per_line*y:(bytes_per_line*y)+bytes_per_line], mwt, mbt, 0)
+                self._draw_line(y, frame[bpl*y:(bpl*y)+bpl], mwt, mbt, 0)
     
     # Change image to a completely new image
     # Much slower than update method, but stops ghosting effect
@@ -313,6 +349,32 @@ class EPD_DRIVER:
         # Power off CoG driver
         self._power_off()
 
+    def update_image(self, new_pixels: bytearray) -> None:
+        # Check if bitpacked pixels are what we expect them to be
+        if not isinstance(new_pixels, bytearray):
+            raise TypeError
+        if len(new_pixels) != 2400:
+            raise TypeError
+
+        self._power_on()
+
+        bpl = self.get_bytes_per_line()
+        if self.frame_iters:
+            for i in range(self.frame_iters):
+                for y in range(self.get_height()):
+                    self._update_line(y, new_pixels[bpl*y:(bpl*y)+bpl], 0)
+        else:
+            start = ticks_ms()
+            while True:
+                for y in range(self.get_height()):
+                    self._update_line(y, new_pixels[bpl*y:(bpl*y)+bpl], 0)
+
+                if ticks_ms() - start > self.frame_repeat:
+                    break
+        
+        self.prev_pixels = new_pixels
+
+        self._power_off()
 
 epd = None
 lcd = None
@@ -345,6 +407,7 @@ def test():
 
     bpl = epd.get_bytes_per_line()
     pixels = bytearray(b'\x00' * 2400)
+    pixels_alt = bytearray(b'\x00' * 2400)
     for y in range(96):
         for x in range(bpl):
             for z in range(8):
@@ -352,9 +415,34 @@ def test():
                 if bmp[(y*bmp.width)+(x*8)+z] == 0:
                     val = 1
                 pixels[(y*bpl)+x] |= (val << z)
-
+                if y > 82:
+                    if val == 0:
+                        val = 1
+                    else:
+                        val = 0
+                pixels_alt[(y*bpl)+x] |= (val << z)
+    
     epd.change_image(pixels)
 
+    alt = False
+
+    while True:
+        if alt:
+            print('regular')
+            t1 = ticks_ms()
+            epd.update_image(pixels)
+            t2 = ticks_ms()
+            print(t2-t1)
+            alt = False
+        else:
+            print('alt')
+            t1 = ticks_ms()
+            epd.update_image(pixels_alt)
+            t2 = ticks_ms()
+            print(t2-t1)
+            alt = True
+        time.sleep(1)
+        
 
 ### Notes
 ## Official COG Driver pdf
