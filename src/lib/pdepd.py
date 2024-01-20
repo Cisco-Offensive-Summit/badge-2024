@@ -19,6 +19,31 @@ class EPD_DRIVER:
     # Set this to override frame repeat calculation
     frame_iters = None
 
+    # Super fast update, keeps the display powered on at all times
+    superfast = False
+
+    # Destructor
+    def __del__(self) -> None:
+        if self.superfast:
+            self._power_off()
+        spi = spi.deinit()
+        EPD_CS = None
+        EPD_RST = None
+        EPD_BUSY = None
+        EPD_DISCHARGE = None
+
+    # Init function
+    def __init__(self, spi) -> None:
+        self.spi = spi
+        self.EPD_CS = digitalio.DigitalInOut(board.EINK_CS)
+        self.EPD_CS.direction = digitalio.Direction.OUTPUT
+        self.EPD_RST = digitalio.DigitalInOut(board.EINK_RST)
+        self.EPD_RST.direction = digitalio.Direction.OUTPUT
+        self.EPD_BUSY = digitalio.DigitalInOut(board.EINK_BUSY)
+        self.EPD_BUSY.direction = digitalio.Direction.INPUT
+        self.EPD_DISCHARGE = digitalio.DigitalInOut(board.EINK_DISCHARGE)
+        self.EPD_DISCHARGE.direction = digitalio.Direction.OUTPUT
+
     # Return height of EPD
     # TODO: Support other sizes
     def get_height(self) -> int:
@@ -44,6 +69,28 @@ class EPD_DRIVER:
         elif tmpr <= 20:  self.frame_repeat *= 2
         elif tmpr <= 40:  self.frame_repeat *= 1
         else: self.frame_repeat = floor(self.frame_repeat * (7/10))
+
+    # Enable fast update by keeping CoG driver on at all times
+    def enable_fast_mode(self) -> None:
+        # Fast mode already enabled, return
+        if self.superfast:
+            return
+        
+        self._power_on()
+        self.superfast = True
+    
+    # Disable fast update and power down CoG driver
+    def disable_fast_mode(self) -> None:
+        # Fast mode already disabled, return
+        if not self.superfast:
+            return 
+        
+        # Stops ghosting
+        self._draw_frame(self.prev_pixels, 2, 3, 2)
+
+        self._power_off()
+        self.superfast = False
+
 
     # Write two raw byte array to EPD
     # bc should only ever be 1 byte, which should either be the CommandIndex (0x70) or CommandData (0x72)
@@ -98,26 +145,6 @@ class EPD_DRIVER:
         self.spi.unlock()
         
         return ret
-
-    # Destructor
-    def __del__(self) -> None:
-        spi = spi.deinit()
-        EPD_CS = None
-        EPD_RST = None
-        EPD_BUSY = None
-        EPD_DISCHARGE = None
-
-    # Init function
-    def __init__(self, spi) -> None:
-        self.spi = spi
-        self.EPD_CS = digitalio.DigitalInOut(board.EINK_CS)
-        self.EPD_CS.direction = digitalio.Direction.OUTPUT
-        self.EPD_RST = digitalio.DigitalInOut(board.EINK_RST)
-        self.EPD_RST.direction = digitalio.Direction.OUTPUT
-        self.EPD_BUSY = digitalio.DigitalInOut(board.EINK_BUSY)
-        self.EPD_BUSY.direction = digitalio.Direction.INPUT
-        self.EPD_DISCHARGE = digitalio.DigitalInOut(board.EINK_DISCHARGE)
-        self.EPD_DISCHARGE.direction = digitalio.Direction.OUTPUT
 
     # Powers EPD CoG driver
     def _power_on(self):
@@ -176,17 +203,8 @@ class EPD_DRIVER:
     # Gracefully power off EPD CoG Driver
     def _power_off(self, cleanup=True):
         # Optional clean of buffer memory
-        # TODO: Support other sizes
         if cleanup:
-            # Write Nothing frame
-            white_line = bytearray(b'\x00' * self.get_bytes_per_line())
-            for y in range(self.get_height()):
-                # Write white line, but map all values to (No Change dot (0x00 or 0x01))
-                self._draw_line(y, white_line, 0, 0, 0)
-            
-            # Write special border byte
-            self._draw_line(0, white_line, 0, 0, 170)
-            #time.sleep(0.200)
+            self._clean_cog_buffer()
 
         self._spi_com_write(b'\x0B', b'\x00') # Undocumented
         self._spi_com_write(b'\x03', b'\x01') # Latch reset turn on
@@ -205,6 +223,22 @@ class EPD_DRIVER:
         self.EPD_DISCHARGE.value = True
         time.sleep(0.150)
         self.EPD_DISCHARGE.value = False
+
+    # Separated from cleanup below for fast update mode
+    def _draw_dummy_line(self):
+        white_line = bytearray(b'\x00' * self.get_bytes_per_line())
+        self._draw_line(0, b'\x00' * self.get_bytes_per_line(), 0, 0, 0xAA)
+
+    # TODO: Support other sizes
+    def _clean_cog_buffer(self):
+        # Write Nothing frame
+        white_line = bytearray(b'\x00' * self.get_bytes_per_line())
+        for y in range(self.get_height()):
+            # Write white line, but map all values to (No Change dot (0x00 or 0x01))
+            self._draw_line(y, white_line, 0, 0, 0)
+        
+        # Write special border byte
+        self._draw_dummy_line()
 
     # Lookup table
     # Maps 3 bits `& 0x5(b101)` to 4 byte EPD dot representation of the two bits we care about
@@ -314,7 +348,8 @@ class EPD_DRIVER:
             raise TypeError
 
         # Power on CoG driver
-        self._power_on()
+        if not self.superfast:
+            self._power_on()
 
         # Step 1: Compensate
         ## Send negative of current image displayed to EPD
@@ -347,7 +382,10 @@ class EPD_DRIVER:
         self.prev_pixels = new_pixels
 
         # Power off CoG driver
-        self._power_off()
+        if not self.superfast:
+            self._power_off()
+        else:
+            self._clean_cog_buffer()
 
     # Update whole image with new data, may cause ghosting if used too frequenly
     def update_image(self, new_pixels: bytearray) -> None:
@@ -357,7 +395,8 @@ class EPD_DRIVER:
         if len(new_pixels) != 2400:
             raise TypeError
 
-        self._power_on()
+        if not self.superfast:
+            self._power_on()
 
         # If frame_iters is set, just use that
         bpl = self.get_bytes_per_line()
@@ -365,6 +404,7 @@ class EPD_DRIVER:
             for i in range(self.frame_iters):
                 for y in range(self.get_height()):
                     self._update_line(y, new_pixels[bpl*y:(bpl*y)+bpl], 0)
+
         # Otherwise find how many iterations of drawing gets us to out frame_repeat number of ms
         else:
             start = ticks_ms()
@@ -378,7 +418,51 @@ class EPD_DRIVER:
         # Override stored previous image
         self.prev_pixels = new_pixels
 
-        self._power_off()
+        if not self.superfast:
+            self._power_off()
+        else:
+            self._clean_cog_buffer()
+
+    # Update image, but only lines specified (line_nums can be range as well)
+    def update_image_partial(self, new_pixels: bytearray, line_nums: range):
+        if not isinstance(new_pixels, bytearray):
+            raise TypeError
+        if len(new_pixels) != 2400:
+            raise TypeError
+
+        if not self.superfast:
+            self._power_on()
+        
+        # If frame_iters is set, just use that
+        bpl = self.get_bytes_per_line()
+        if self.frame_iters:
+            for i in range(self.frame_iters):
+                for y in iter(line_nums):
+
+                    # If line out of display bounds, ignore it
+                    if y < 0 or y >= self.get_height():
+                        continue
+                    self._update_line(y, new_pixels[bpl*y:(bpl*y)+bpl], 0)
+
+        # Otherwise find how many iterations of drawing gets us to out frame_repeat number of ms
+        else:
+            start = ticks_ms()
+            while True:
+                for y in iter(line_nums):
+                    if y < 0 or y >= self.get_height():
+                        continue
+                    self._update_line(y, new_pixels[bpl*y:(bpl*y)+bpl], 0)
+
+                if ticks_ms() - start > self.frame_repeat:
+                    break
+
+        # Override stored previous image
+        self.prev_pixels = new_pixels
+
+        if not self.superfast:
+            self._power_off()
+        else:
+            self._draw_dummy_line()        
 
     # Display 2 color bitmap
     def display_2_color_bitmap(self, bitmap_str: str) -> None:
@@ -446,28 +530,78 @@ def test():
                         val = 0
                 pixels_alt[(y*bpl)+x] |= (val << z)
     
+    print("Full image redraw, slow mode")
+    t1 = ticks_ms()
     epd.change_image(pixels)
+    t2 = ticks_ms()
+    print("Update time = {}ms\n\n".format(t2-t1))
+
+    epd.enable_fast_mode()
+    print("Full image redraw, fast mode")
+    t1 = ticks_ms()
+    epd.change_image(pixels)
+    t2 = ticks_ms()
+    print("Update time = {}ms\n\n".format(t2-t1))
+
     #epd.display_2_color_bitmap('/epd_logo.bmp')
 
     alt = False
 
-    while True:
+    acc = []
+    print("Update image timing test. Full image.")
+    for _ in range(10):
         if alt:
-            print('regular')
+            print('\tregular')
             t1 = ticks_ms()
             epd.update_image(pixels)
             t2 = ticks_ms()
-            print(t2-t1)
+            print("\tUpdate time = {}ms".format(t2-t1))
+            acc.append(t2-t1)
             alt = False
         else:
-            print('alt')
+            print('\talt')
             t1 = ticks_ms()
             epd.update_image(pixels_alt)
             t2 = ticks_ms()
-            print(t2-t1)
+            print("\tUpdate time = {}ms".format(t2-t1))
+            acc.append(t2-t1)
             alt = True
-        time.sleep(1)
-        
+        time.sleep(0.01)
+
+    s = 0
+    for i in acc:
+        s += i
+    
+    print("Average time = {}ms\n\n".format(floor(s/len(acc))))
+
+    acc = []
+    print("Update image timing test. Partial image .")
+    for _ in range(10):
+        if alt:
+            print('\tregular')
+            t1 = ticks_ms()
+            epd.update_image_partial(pixels, range(83,96))
+            t2 = ticks_ms()
+            print("\tUpdate_time = {}ms".format(t2-t1))
+            acc.append(t2-t1)
+            alt = False
+        else:
+            print('\talt')
+            t1 = ticks_ms()
+            epd.update_image_partial(pixels_alt, range(83,96))
+            t2 = ticks_ms()
+            print("\tUpdate_time = {}ms".format(t2-t1))
+            acc.append(t2-t1)
+            alt = True
+        time.sleep(0.01)
+
+    epd.disable_fast_mode()
+
+    s = 0
+    for i in acc:
+        s += i
+    
+    print("Average time = {}ms\n\n".format(floor(s/len(acc))))
 
 ### Notes
 ## Official COG Driver pdf
