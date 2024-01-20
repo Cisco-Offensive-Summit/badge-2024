@@ -343,12 +343,13 @@ class EPD_DRIVER:
         ## Send new image
         self._draw_frame(new_pixels, 2, 3, iters)
         
-        # Ovverride stored previous image
+        # Override stored previous image
         self.prev_pixels = new_pixels
 
         # Power off CoG driver
         self._power_off()
 
+    # Update whole image with new data, may cause ghosting if used too frequenly
     def update_image(self, new_pixels: bytearray) -> None:
         # Check if bitpacked pixels are what we expect them to be
         if not isinstance(new_pixels, bytearray):
@@ -358,11 +359,13 @@ class EPD_DRIVER:
 
         self._power_on()
 
+        # If frame_iters is set, just use that
         bpl = self.get_bytes_per_line()
         if self.frame_iters:
             for i in range(self.frame_iters):
                 for y in range(self.get_height()):
                     self._update_line(y, new_pixels[bpl*y:(bpl*y)+bpl], 0)
+        # Otherwise find how many iterations of drawing gets us to out frame_repeat number of ms
         else:
             start = ticks_ms()
             while True:
@@ -371,10 +374,31 @@ class EPD_DRIVER:
 
                 if ticks_ms() - start > self.frame_repeat:
                     break
-        
+
+        # Override stored previous image
         self.prev_pixels = new_pixels
 
         self._power_off()
+
+    # Display 2 color bitmap
+    def display_2_color_bitmap(self, bitmap_str: str) -> None:
+        import adafruit_imageload
+        from displayio import Bitmap, Palette
+
+        bmp, pal = adafruit_imageload.load(bitmap_str, bitmap=Bitmap, palette=Palette)
+        bitpack = bytearray(b'\x00' * self.get_height() * self.get_bytes_per_line())
+
+        # Pack bitmap to bytesarray
+        bpl = self.get_bytes_per_line()
+        for y in range(min(self.get_height(), bmp.height)):
+            i = -1
+            for x in range(min(self.get_width(), bmp.width)):
+                if x % 8 == 0:
+                    i+=1
+                val = 0 if bmp[x,y] else 1
+                bitpack[(y*bpl)+i] |= val << (x % 8)
+
+        self.change_image(bitpack)
 
 epd = None
 lcd = None
@@ -423,6 +447,7 @@ def test():
                 pixels_alt[(y*bpl)+x] |= (val << z)
     
     epd.change_image(pixels)
+    #epd.display_2_color_bitmap('/epd_logo.bmp')
 
     alt = False
 
