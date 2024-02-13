@@ -1,0 +1,10 @@
+Change Component Footprint: Designator=P3 Old Footprint=AMPHENOL_62684-402100AHLF New Footprint=AMPHENOL_62684-401100AHLF
+Change Component Comment : Designator=P3 Old Comment=CONN FPC TOP 40POS 0.5MM R/A New Comment=CONN FPC BOTTOM 40POS 0.5MM R/A
+Change Component Description : Designator=P3 Old Description=CONN FPC TOP 40POS 0.5MM R/A New Description=CONN FPC BOTTOM 40POS 0.5MM R/A
+Change component parameters: Designator = "P3"; Footprint = "AMPHENOL_62684-401100AHLF"; UniqueID = "\CCPNATDH"
+Change component parameters. Clean all parameters for all variants
+Change component parameters (AddParameter): Name = "Distributor"; Value = "Digi-Key"; VariantName = "[No Variations]"
+Change component parameters (AddParameter): Name = "Distributor Part Number"; Value = "609-62684-401100AHLFTR-ND"; VariantName = "[No Variations]"
+Change component parameters (AddParameter): Name = "Manufacturer"; Value = "Amphenol ICC (FCI)"; VariantName = "[No Variations]"
+Change component parameters (AddParameter): Name = "Manufacturer Part Number"; Value = "62684-401100AHLF"; VariantName = "[No Variations]"
+Change component parameters (AddParameter): Name = "MFG-Comment"; Value = ""; VariantName = "[No Variations]"
