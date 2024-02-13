@@ -37,3 +37,6 @@
 [1128/121719:WARNING:dns_config_service_win.cc(665)] Failed to read DnsConfig.
 [1128/121724:WARNING:dns_config_service_win.cc(665)] Failed to read DnsConfig.
 [1128/121729:WARNING:dns_config_service_win.cc(665)] Failed to read DnsConfig.
+[0213/142821:INFO:CONSOLE(0)] "The source list for Content Security Policy directive 'script-src' contains an invalid source: ''report-sample''. It will be ignored.", source: https://www.altium.com/ad-start/ (0)
+[0213/142821:INFO:CONSOLE(0)] "Unrecognized Content-Security-Policy directive 'worker-src'.
+", source: https://www.altium.com/ad-start/ (0)

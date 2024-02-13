@@ -1,5 +1,5 @@
 ----------------------------------------------------------------------------------------------------------------------------------
-NCDrill File Report For: OS-2024-Badge-PCB-REV1.PcbDoc   12/14/2023  3:23:45 PM
+NCDrill File Report For: OS-2024-Badge-PCB-REV1.PcbDoc   2/13/2024  2:33:27 PM
 ----------------------------------------------------------------------------------------------------------------------------------
 
 Layer Pair : Top Layer to Bottom Layer
@@ -11,11 +11,10 @@ T1      15mil (0.381mm)                                           Round         
 T2      35mil (0.889mm)                                           Round             16        PTH        1.89inch (48.10mm)
 T3      35mil (0.9mm)                                             Round             48        PTH        7.35inch (186.81mm)
 T4      47mil (1.2mm)                                             Round             12        PTH        3.85inch (97.82mm)
-T5      63mil (1.61mm)                                            Round             5         PTH        0.40inch (10.16mm)
-T6      71mil (1.8mm)                                             Round             8         PTH        0.70inch (17.78mm)
-T7      79mil (2mm)                                               Round             8         PTH        5.82inch (147.93mm)
-T8      144mil (3.658mm)                                          Round             4         PTH        8.18inch (207.78mm)
-T9      264mil (6.7mm)                                            Round             1         PTH        0.00inch (0.00mm)
+T5      71mil (1.8mm)                                             Round             13        PTH        4.16inch (105.55mm)
+T6      79mil (2mm)                                               Round             8         PTH        5.82inch (147.93mm)
+T7      144mil (3.658mm)                                          Round             4         PTH        8.18inch (207.78mm)
+T8      264mil (6.7mm)                                            Round             1         PTH        0.00inch (0.00mm)
 ----------------------------------------------------------------------------------------------------------------------------------
 Totals                                                                              171
 
