@@ -75,7 +75,8 @@ STATIC const mp_rom_map_elem_t board_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_TFT_MOSI),   MP_ROM_PTR(&pin_GPIO11)  },
     { MP_ROM_QSTR(MP_QSTR_TFT_CLKS),   MP_ROM_PTR(&pin_GPIO12)  },
     { MP_ROM_QSTR(MP_QSTR_TFT_DC),   MP_ROM_PTR(&pin_GPIO13)  },
-    { MP_ROM_QSTR(MP_QSTR_DISPLAY_LCD), MP_ROM_PTR(&displays[0].display) },
+    { MP_ROM_QSTR(MP_QSTR_TFT_BL),   MP_ROM_PTR(&pin_GPIO47)  },
+    //{ MP_ROM_QSTR(MP_QSTR_DISPLAY_LCD), MP_ROM_PTR(&displays[0].display) },
     //  E-INK Display
     { MP_ROM_QSTR(MP_QSTR_EINK_CS),   MP_ROM_PTR(&pin_GPIO18)  },
     { MP_ROM_QSTR(MP_QSTR_EINK_BUSY),   MP_ROM_PTR(&pin_GPIO38)  },
