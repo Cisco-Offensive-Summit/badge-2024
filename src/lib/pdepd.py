@@ -484,29 +484,8 @@ class EPD_DRIVER:
 
         self.change_image(bitpack)
 
-epd = None
-lcd = None
-
-# Testing function
-def test_init():
-    import displayio
-    import fourwire
-    from adafruit_st7735r import ST7735R
-    displayio.release_displays()
-    
-    global epd
-    global lcd
-
-    spi = busio.SPI(board.EINK_CLKS, board.EINK_MOSI, board.EINK_MISO)
-    fw = fourwire.FourWire(spi, command=board.TFT_DC, chip_select=board.TFT_CS, reset=board.TFT_RST, baudrate=20000000)
-
-    lcd = ST7735R(fw, width=128, height=128, colstart=2, rowstart=1, rotation=270)
-
-    epd = EPD_DRIVER(spi)
-
-    test()
-
-def test():
+# TODO: Delete this later
+def speed_test():
     import displayio, adafruit_imageload, io
     global epd
     global lcd
