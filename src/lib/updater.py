@@ -1,5 +1,11 @@
-import gc, ssl, wifi, socketpool, binascii, storage, os
-import adafruit_requests
+from ssl import create_default_context
+from wifi import radio as wifiradio
+from socketpool import SocketPool
+from binascii import a2b_base64
+from storage import getmount
+from adafruit_requests import Session
+import gc, os
+
 
 class UserPrint:
     def __init__(self):
@@ -8,11 +14,20 @@ class UserPrint:
     def do_print(self, s: str):
         pass
 
+    def complete(self):
+        pass
+
+    def error(self):
+        pass
+
 class UserIndicator:
     def __init__(self):
         pass
     
     def advance(self):
+        pass
+
+    def complete(self):
         pass
 
     def error(self):
@@ -37,13 +52,25 @@ class WifiDisconnected(Exception):
     def __str__(self):
         return self.message
 
-class UnsupportedEncoding(Exception):
+class RepositoryUnreachable(Exception):
+    def __init__(self, message):            
+        super().__init__(message)
+    def __str__(self):
+        return self.message
+
+class RepositoryBadCredentials(Exception):
     def __init__(self, message):            
         super().__init__(message)
     def __str__(self):
         return self.message
 
 class SourceDirectoryNotFound(Exception):
+    def __init__(self, message):            
+        super().__init__(message)
+    def __str__(self):
+        return self.message
+
+class UnsupportedEncoding(Exception):
     def __init__(self, message):            
         super().__init__(message)
     def __str__(self):
@@ -82,17 +109,61 @@ class Updater:
         self.USER_PRINT = UserPrint()
         self.USER_INDICATOR = UserIndicator()
 
+    def set_user_print_class(self, c):
+        try:
+            self.USER_PRINT = c()
+            return True
+        except:
+            return False
+
+    def set_user_indicator_class(self, c):
+        try:
+            self.USER_INDICATOR = c()
+            return True
+        except:
+            return False
+
+    def _trigger_user_print_do_print(self, s):
+        try:
+            self.USER_PRINT.do_print(s)
+        except:
+            pass
+    
+    def _trigger_user_print_complete(self):
+        try:
+            self.USER_PRINT.complete()
+        except:
+            pass
+    
+    def _trigger_user_print_error(self):
+        try:
+            self.USER_PRINT.error()
+        except:
+            pass
+
+    def _trigger_user_indicator_advance(self):
+        try:
+            self.USER_INDICATOR.advance()
+        except:
+            pass
+    
+    def _trigger_user_indicator_complete(self):
+        try:
+            self.USER_INDICATOR.complete()
+        except:
+            pass
+
+    def _trigger_user_indicator_error(self):
+        try:
+            self.USER_INDICATOR.error()
+        except:
+            pass
 
     def rprint(self, s, end='\n'):
         with open("updater_out.txt", "a") as f:
             f.write("{}{}".format(s, end))
     
-        #print("{}".format(s), end=end)
-        try:
-            self.USER_PRINT.do_print("{}{}".format(s,end))
-        except:
-            # Do nothing if users function fails
-            pass
+        self._trigger_user_print_do_print("{}{}".format(s,end))
 
 
     def dprint(self, s, end='\n'):
@@ -100,15 +171,13 @@ class Updater:
             with open("updater_out.txt", "a") as f:
                 f.write("[D] {}{}".format(s, end))
             #print("[D] {}".format(s), end=end)
-            try:
-                self.USER_PRINT.do_print("[D] {}{}".format(s,end))
-            except:
-                # Do nothing if users function fails
-                pass
+            self._trigger_user_print_do_print("{}{}".format(s,end))
 
 
     def check_storage(self):
-        if storage.getmount('/').readonly != False:
+        if getmount('/').readonly != False:
+            self._trigger_user_print_error()
+            self._trigger_user_indicator_error()
             raise ReadonlyStorage("Volume mounted on '/' is not writable by circuitpython!")
 
 
@@ -121,22 +190,43 @@ class Updater:
             if st_mode == ST_MODE_FILE:
                 os.remove('updater_out.txt')
             elif st_mode == ST_MODE_DIR:
+                self._trigger_user_print_error()
+                self._trigger_user_indicator_error()
                 raise Exception("updater_out.txt is somehow a directory, dont do that! >:(")
             else:
+                self._trigger_user_print_error()
+                self._trigger_user_indicator_error()
                 raise Exception("os.stat return unknown st_mode type!")
         except:
             return
 
+    def handle_response_code(self, req):
+        # Catch non 200 responses
+        if req.status_code == 200:
+            return
+        if req.status_code == 404:
+            self._trigger_user_print_error()
+            self._trigger_user_indicator_error()
+            raise RepositoryUnreachable("Unable to access repository.\nStatus: {}\n{}".format(req.status_code, req.text))
+        if req.status_code == 401:
+            self._trigger_user_print_error()
+            self._trigger_user_indicator_error()
+            raise RepositoryBadCredentials("Bad credentials supplied for repository.\nStatus: {}\n{}".format(req.status_code, req.text))
+        else:
+            self._trigger_user_print_error()
+            self._trigger_user_indicator_error()
+            raise Exception("Recieved non 200 response from Repository.\nStatus: {}\n{}".format(req.status_code, req.text))
+
 
     def connect_wifi(self):
-        if wifi.radio.connected:
+        if wifiradio.connected:
             return True
 
         # Try a few times
         for i in range(5):
             try:
-                wifi.radio.connect(self.SSID, self.WIFIPASS)
-                return wifi.radio.connected
+                wifiradio.connect(self.SSID, self.WIFIPASS)
+                return wifiradio.connected
             except:
                 None
 
@@ -146,31 +236,51 @@ class Updater:
     def run(self):
         gc.enable()
 
+        self.dprint("Mem free: {}".format(gc.mem_free()))
+
         self.check_storage()
         self.delete_old_output()
+        self._trigger_user_indicator_advance()
 
         self.rprint("Trying to connect to wifi... ", end='')
         if self.connect_wifi():
             self.rprint("Success!")
         else:
             self.rprint("Failed :(")
-            raise WifiUnreachable("Could not connect to wifi network '{}'".format(self.ssid))
+            self._trigger_user_print_error()
+            self._trigger_user_indicator_error()
+            raise WifiUnreachable("Could not connect to wifi network '{}'".format(self.SSID))
+        self._trigger_user_indicator_advance()
 
         gc.collect()
 
         special_files = []
 
-        pool = socketpool.SocketPool(wifi.radio)
-        requests = adafruit_requests.Session(pool, ssl.create_default_context())
+        pool = SocketPool(wifiradio)
+        requests = Session(pool, create_default_context())
+        self._trigger_user_indicator_advance()
+
+        gc.collect()
 
         self.rprint("[!] Starting update, do not restart badge!")
 
         src_tree_sha = self.get_src_tree(requests)
+        self._trigger_user_indicator_advance()
         
         gc.collect()
 
-        src_tree = self.get_tree(requests, src_tree_sha, recursive=True).json()
+        src_tree_req = self.get_tree(requests, src_tree_sha, recursive=True)
+        self._trigger_user_indicator_advance()
         
+        gc.collect()
+
+        # If response code is not 200, throw exception
+        self.handle_response_code(src_tree_req)
+
+        src_tree = src_tree_req.json()
+        
+        gc.collect()
+
         # Write files
         for i in src_tree["tree"]:
             if i["type"] == "blob":
@@ -179,9 +289,17 @@ class Updater:
                     self.mkfile(requests, i["path"] + '_tmp', i["sha"])
                 else:
                     self.mkfile(requests, i["path"], i["sha"])
+
+                self._trigger_user_indicator_advance()
+                gc.collect()
         
-        src_tree = None
+        src_tree_req.close()
+        del src_tree_req
+        del src_tree
         gc.collect()
+
+        self._trigger_user_indicator_complete()
+        self._trigger_user_print_complete()
 
         return special_files
 
@@ -192,13 +310,21 @@ class Updater:
         if self.SRC_PATH == "" or self.SRC_PATH == "/":
             return self.GH_BRANCH
         
+        self.dprint("Finding source path {} in branch {}.".format(self.SRC_PATH, self.GH_BRANCH))
         # Find SRC directory in json structure
-        root_tree = self.get_tree(request, self.GH_BRANCH, recursive=True).json()
+        root_tree_req = self.get_tree(request, self.GH_BRANCH, recursive=False)
+
+        # If response code is not 200, throw exception
+        self.handle_response_code(root_tree_req)
+
+        root_tree = root_tree_req.json()
         for i in root_tree["tree"]:
             if i["path"] == self.SRC_PATH:
                 return i["sha"]
 
         # Cannot find src directory
+        self._trigger_user_print_error()
+        self._trigger_user_indicator_error()
         raise SourceDirectoryNotFound(f"Could not find source directory: {self.SRC_PATH}")
 
 
@@ -216,6 +342,8 @@ class Updater:
                 pass
             else:
                 # Should never be here
+                self._trigger_user_print_error()
+                self._trigger_user_indicator_error()
                 raise Exception("os.stat return unknown st_mode type!")
         except:
             self.dprint("{} does not exist yet".format(dir_path))
@@ -233,19 +361,34 @@ class Updater:
                 if e.errno == 17:
                     self.dprint("Directory '{}' already exists".format(tmp_dir_path))
                 else:
+                    self._trigger_user_print_error()
+                    self._trigger_user_indicator_error()
                     raise e
 
 
     # Write file, will overwrite files 
     def mkfile(self, requests, file_path, file_sha):
         file_contents = bytes()
-        blob = self.get_blob(requests, file_sha).json()
+        blob_req = self.get_blob(requests, file_sha)
+        
+        try:
+            self.handle_response_code(blob_req)
+        except RepositoryUnreachable as e:
+            self.drpint("Could not download file {}.\n {}".format(file_path, e))
+            return
+
+        blob = blob_req.json()
+        blob_req.close()
+        del blob_req
+        gc.collect()
 
         if blob["encoding"] == "base64":
-            file_contents = binascii.a2b_base64(blob["content"])
+            file_contents = a2b_base64(blob["content"])
         elif blob["encoding"] == "utf-8":
             file_contents = blob["content"].encode()
         else:
+            self._trigger_user_print_error()
+            self._trigger_user_indicator_error()
             raise UnsupportedEncoding("Encoding {} not recognized!".format(blob["encoding"]))
 
         # Create directory file should be in, if needed
@@ -262,6 +405,8 @@ class Updater:
     # Returns blob data
     def get_blob(self, requests, hash):
         if not self.connect_wifi():
+            self._trigger_user_print_error()
+            self._trigger_user_indicator_error()
             raise WifiUnreachable("Lost connection to wifi network '{}'".format(self.ssid))
 
         endpoint = self.GH_REPO+self.BLOBS_API_ENDPOINT+hash
@@ -273,6 +418,8 @@ class Updater:
     # Returns tree data
     def get_tree(self, requests, hash, recursive=False):
         if not self.connect_wifi():
+            self._trigger_user_print_error()
+            self._trigger_user_indicator_error()
             raise WifiUnreachable("Lost connection to wifi network '{}'".format(self.ssid))
 
         endpoint = self.GH_REPO+self.TREES_API_ENDPOINT+hash
