@@ -1,4 +1,4 @@
-import storage, board, digitalio, microcontroller, os
+import storage, board, digitalio, microcontroller, os, supervisor
 from traceback import format_exception
 from time import sleep
 import updater, secrets
@@ -6,6 +6,8 @@ import updater, secrets
 def loop_forever():
     while True:
         sleep(1)
+
+supervisor.runtime.autoreload = False
 
 BTN1 = digitalio.DigitalInOut(board.BTN1)
 BTN1.direction = digitalio.Direction.INPUT

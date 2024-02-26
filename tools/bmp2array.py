@@ -22,7 +22,7 @@ def main(imgpath: str) -> str:
             val = 0 if px[x,y] else 1
             bitpack[(y*bpl)+i] |= val << (x % 8)
 
-    ret = "bytearray(\n"
+    ret = "img = bytearray(\n"
     for i in range(96):
         b = bytes(bitpack[(200//8)*i: ((200//8)*i) + 200//8])
         ret += f"\t{b}\n"
