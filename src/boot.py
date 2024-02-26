@@ -84,7 +84,7 @@ if not BTN1.value and not BTN2.value:
         def error(self):
             self.logterm.write("------------------\r\nUpdate failed! View updater_out.txt for more information.\r\n")
     
-    OTA = updater.Updater(secrets.WIFI_NETWORK, secrets.WIFI_PASS, secrets.GH_REPO, branch=secrets.GH_BRANCH, gh_token=secrets.GH_TOKEN, src_path=secrets.GH_SRC_FOLDER, debug=True)
+    OTA = updater.Updater(secrets.WIFI_NETWORK, secrets.WIFI_PASS, secrets.GH_REPO, branch=secrets.GH_BRANCH, gh_token=secrets.GH_TOKEN, src_path=secrets.GH_SRC_FOLDER, debug=True, mpy2py=True)
 
     if not OTA.set_user_indicator_class(NeoPixelIndicator):
         print('Could not instantiate user indicator class')

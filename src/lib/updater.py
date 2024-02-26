@@ -78,8 +78,9 @@ class UnsupportedEncoding(Exception):
 
 
 class Updater:
-    def __init__(self, ssid, wifipass, repo, branch="main", gh_token="", src_path="/", debug=False):
+    def __init__(self, ssid, wifipass, repo, branch="main", gh_token="", src_path="/", debug=False, mpy2py=False):
         self.debug = debug
+        self.mpy2py = mpy2py
         
         self.SSID = ssid
         self.WIFIPASS = wifipass
@@ -108,6 +109,7 @@ class Updater:
 
         self.USER_PRINT = UserPrint()
         self.USER_INDICATOR = UserIndicator()
+
 
     def set_user_print_class(self, c):
         try:
@@ -159,6 +161,7 @@ class Updater:
         except:
             pass
 
+
     def rprint(self, s, end='\n'):
         with open("updater_out.txt", "a") as f:
             f.write("{}{}".format(s, end))
@@ -199,6 +202,7 @@ class Updater:
                 raise Exception("os.stat return unknown st_mode type!")
         except:
             return
+
 
     def handle_response_code(self, req):
         # Catch non 200 responses
@@ -400,6 +404,31 @@ class Updater:
         self.dprint("Writing {} now!".format(file_path))
         with open(file_path, "wb") as f:
             f.write(file_contents)
+        
+        # If new file is .py delete old .mpy
+        # If new file is .mpy delete old .py
+        if self.mpy2py:
+            split = file_path.rsplit('.', 1)
+            if len(split) < 2:
+                return
+            if split[1] == "py":
+                try:
+                    st_mode = os.stat(split[0]+'.mpy')[0]
+                    if st_mode == 0x8000:
+                        self.dprint("Deleting file {}".format(split[0]+'.mpy'))
+                        os.remove(split[0]+'.mpy')
+                except:
+                    return
+            elif split[1] == "mpy":
+                try:
+                    st_mode = os.stat(split[0]+'.py')[0]
+                    if st_mode == 0x8000:
+                        self.dprint("Deleting file {}".format(split[0]+'.py'))
+                        os.remove(split[0]+'.py')
+                except:
+                    return
+            else:
+                return
 
 
     # Returns blob data
