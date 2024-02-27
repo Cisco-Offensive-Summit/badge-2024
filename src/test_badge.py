@@ -209,4 +209,5 @@ def run():
             pass
         loop_forever()
 
-run()
+if __name__ == "__main__":
+    run()
