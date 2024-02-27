@@ -109,5 +109,8 @@ if not BTN1.value and not BTN2.value:
 if not BTN4.value:
     storage.remount("/", readonly=False, disable_concurrent_write_protection=False)
 
+import code
+code.run()
+
 # Uncomment to for updater testing
 #storage.remount("/", readonly=False, disable_concurrent_write_protection=False)
