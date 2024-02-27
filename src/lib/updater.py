@@ -342,7 +342,9 @@ class Updater:
             if st_mode == ST_MODE_DIR:
                 return
             elif st_mode == ST_MODE_FILE:
-                # TODO: what to do here?
+                self._trigger_user_print_error()
+                self._trigger_user_indicator_error()
+                raise Exception("Cannot make directory {} it already exists as a file?!".format(dir_path))
                 pass
             else:
                 # Should never be here
