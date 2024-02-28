@@ -53,7 +53,10 @@ if not BTN1.value and not BTN2.value:
             import board, displayio
             import terminalio
             from adafruit_st7735r import ST7735R
-            from fourwire import FourWire
+            try:
+                from fourwire import FourWire
+            except ImportError:
+                from displayio import FourWire
             from busio import SPI
             displayio.release_displays()
             d_spi = SPI(board.EINK_CLKS, board.EINK_MOSI, board.EINK_MISO)
