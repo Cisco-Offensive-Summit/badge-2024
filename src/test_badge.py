@@ -1,6 +1,9 @@
 import board, neopixel, displayio, digitalio
 from time import sleep
-from fourwire import FourWire
+try:
+    from fourwire import FourWire
+except ImportError:
+    from displayio import FourWire
 from busio import SPI
 from traceback import print_exception
 from adafruit_st7735r import ST7735R
