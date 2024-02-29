@@ -2,7 +2,7 @@ import board, displayio, busio
 try:
     from FourWire import fourwire
 except ImportError:
-    from FourWire import displayio
+    from displayio import FourWire
 from adafruit_st7735r import ST7735R
 from pdepd import EPD_DRIVER
 
