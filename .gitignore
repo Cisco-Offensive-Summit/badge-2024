@@ -1,3 +1,5 @@
 src/secrets.py
+filesystem.c
 .DS_Store
 __Previews
+__pycache__/
