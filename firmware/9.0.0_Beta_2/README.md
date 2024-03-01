@@ -1,6 +1,6 @@
 # Badge Firmware
 
-Current version CircuitPython 8.2.10
+This is for the beta release of circuitpython, not in use anymore swapped to most stable 8.2.10
 
 ## Flashing new badges
 
@@ -8,8 +8,9 @@ Current version CircuitPython 8.2.10
     - https://github.com/espressif/esp-idf.git
     - Install packages for `esp-idf` by running `install.sh`
     - Enable venv packages with `$ source esp-idf/export.sh`
-2. Press both Reset and Boot switches, Release Reset switch then shortly after Boot switch 
-    - This is only necessary if you have a circuitpython firmware installed on the badge already.
+2. Press both Reset and Boot switches for around half a second
+    - This is only necessary if you have a circuitpython firmware installed 
+    on the badge already.
 3. Run the following command
     - `esptool.py --chip esp32s3 --port /dev/cu.usbmodem144101 write_flash -z 0x0 firmware.bin`
 4. Restart the badge
@@ -40,13 +41,9 @@ Links:
 2. Clone CircuitPython
     - `git clone https://github.com/adafruit/circuitpython.git`
     - `cd circuitpython`
-    - `git checkout 8.2.x`
-    - `git reset --hard 722f75f`
-        - Commit for GitHub Release
     - All steps below assume you will start in the CircuitPython git directory
 3. Install python modules
     - `pip3 install --upgrade -r requirements-dev.txt`
-    - unfortunately you cannot use a pip env 😔
 4. Fetch submodules
     - `cd ports/espressif && make fetch-port-submodules`
 5. Install and enable `esp-idf`
@@ -63,7 +60,6 @@ Links:
       cd ports/espressif/
       make BOARD=offsummit_2024 -j 8
       ```
-    - If you get errors about missing python modules do `pip install minify_html jsmin`
 
 ## Useful defines
 
@@ -198,5 +194,5 @@ Full list of friendly name defines:
 
 ## TODO
 
-- [x] Get E-INK display set up in firmware
-- [-] Get Double Tap firmware update working (uf2 file)
+- [ ] Get E-INK display set up in firmware
+- [ ] Get Double Tap firmware update working (uf2 file)
