@@ -21,6 +21,7 @@ def main():
 
     # Load and display logo
     epd.image('/img/epd_logo.bmp')
+    epd.draw()
 
 if __name__ == "__main__":
     main()
