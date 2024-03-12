@@ -188,6 +188,7 @@ Full list of friendly name defines:
 | 11       | TFT_MOSI                |
 | 12       | TFT_CLKS                |
 | 13       | TFT_DC                  |
+| 47       | TFT_BL                  |
 | 18       | EINK_CS                 |
 | 38       | EINK_BUSY               |
 | 12       | EINK_CLKS               |
