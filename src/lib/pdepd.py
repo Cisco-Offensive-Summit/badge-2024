@@ -465,27 +465,7 @@ class EPD_DRIVER:
         if not self.superfast:
             self._power_off()
         else:
-            self._draw_dummy_line()        
-
-    # Display 2 color bitmap
-    def display_2_color_bitmap(self, bitmap_str: str) -> None:
-        import adafruit_imageload
-        from displayio import Bitmap, Palette
-
-        bmp, pal = adafruit_imageload.load(bitmap_str, bitmap=Bitmap, palette=Palette)
-        bitpack = bytearray(b'\x00' * self.get_height() * self.get_bytes_per_line())
-
-        # Pack bitmap to bytesarray
-        bpl = self.get_bytes_per_line()
-        for y in range(min(self.get_height(), bmp.height)):
-            i = -1
-            for x in range(min(self.get_width(), bmp.width)):
-                if x % 8 == 0:
-                    i+=1
-                val = 0 if bmp[x,y] else 1
-                bitpack[(y*bpl)+i] |= val << (x % 8)
-
-        self.change_image(bitpack)
+            self._draw_dummy_line()
 
 # SPDX-FileCopyrightText: <text> 2018 Kattni Rembor, Melissa LeBlanc-Williams
 # and Tony DiCola, for Adafruit Industries.
@@ -511,7 +491,7 @@ class PDEPDFormat:
             i+=1
         val = 1 if color else 0
         index = (y*bytes_per_line) + i
-        framebuf.buf[index] &= ~(val << byte_pos)
+        framebuf.buf[index] &= ~(1 << byte_pos)
         framebuf.buf[index] |= (val << byte_pos)
 
     @staticmethod
@@ -552,7 +532,7 @@ class PDEPDFormat:
                     cur_x -= 8
                     i+=1
                 index = (y*bytes_per_line) + i
-                framebuf.buf[index] &= ~(val << byte_pos)
+                framebuf.buf[index] &= ~(1 << byte_pos)
                 framebuf.buf[index] |= (val << byte_pos)
             y += 1
             height -= 1
@@ -739,18 +719,22 @@ class FrameBuffer:
             shift_x = 0
             xend = self.width + delta_x
             dt_x = 1
+            x_rect = xend
         else:
             shift_x = self.width - 1
             xend = delta_x - 1
             dt_x = -1
+            x_rect = 0
         if delta_y < 0:
             y = 0
             yend = self.height + delta_y
             dt_y = 1
+            y_rect = yend
         else:
             y = self.height - 1
             yend = delta_y - 1
             dt_y = -1
+            y_rect = 0
         while y != yend:
             x = shift_x
             while x != xend:
@@ -759,6 +743,9 @@ class FrameBuffer:
                 )
                 x += dt_x
             y += dt_y
+
+        self.fill_rect(x_rect, 0, abs(delta_x), self.height, 0)
+        self.fill_rect(0, y_rect, self.width, abs(delta_y), 0)
 
     # pylint: disable=too-many-arguments
     def text(self, string, x, y, color, *, font_name="font/font5x8.bin", size=1):
@@ -905,7 +892,18 @@ class EPD(FrameBuffer):
 
     def image(self, img_path: str) -> None:
         """Draw an bitmap image, must be 1 bit color"""
-        self.driver.display_2_color_bitmap(img_path)
+        import adafruit_imageload
+        from displayio import Bitmap, Palette
+
+        self.format.fill(self, 0)
+        bmp, pal = adafruit_imageload.load(img_path, bitmap=Bitmap, palette=Palette)
+
+        bpl = self.driver.get_bytes_per_line()
+        for y in range(min(self.driver.get_height(), bmp.height)):
+            i = -1
+            for x in range(min(self.driver.get_width(), bmp.width)):
+                if not bmp[x,y]:
+                    self.format.set_pixel(self, x, y, 1)
 
     def pretty_print_buffer(self) -> None:
         """Prints what the buffer will look like in ascii text"""
