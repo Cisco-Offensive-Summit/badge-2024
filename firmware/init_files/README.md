@@ -35,7 +35,8 @@ storage.erase_filesystem()
 
 ## MPY
 
-Some files are too large to write on firmware init, so they must be compiled to mpy files.
+Some files are too large to write on firmware init, so they must be compiled to mpy files.  
+This file limit seems to be somewhere around 8000 bytes, probably due to some stack alloc limits.
 
 More info here: https://docs.micropython.org/en/latest/reference/mpyfiles.html
 
