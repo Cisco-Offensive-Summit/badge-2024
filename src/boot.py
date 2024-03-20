@@ -25,6 +25,10 @@ BTN4.pull = digitalio.Pull.UP
 if not BTN1.value and not BTN2.value:
     storage.remount("/", readonly=False, disable_concurrent_write_protection=False)
     
+    ks = True
+    if not BTN4.value:
+        ks = False
+
     # Blinkenlights
     class NeoPixelIndicator(updater.UserIndicator):
         def __init__(self):
@@ -87,7 +91,7 @@ if not BTN1.value and not BTN2.value:
         def error(self):
             self.logterm.write("------------------\r\nUpdate failed! View updater_out.txt for more information.\r\n")
     
-    OTA = updater.Updater(secrets.WIFI_NETWORK, secrets.WIFI_PASS, secrets.GH_REPO, branch=secrets.GH_BRANCH, gh_token=secrets.GH_TOKEN, src_path=secrets.GH_SRC_FOLDER, debug=True, mpy2py=True)
+    OTA = updater.Updater(secrets.WIFI_NETWORK, secrets.WIFI_PASS, secrets.GH_REPO, branch=secrets.GH_BRANCH, gh_token=secrets.GH_TOKEN, src_path=secrets.GH_SRC_FOLDER, debug=True, mpy2py=True, keep_secrets=ks)
 
     if not OTA.set_user_indicator_class(NeoPixelIndicator):
         print('Could not instantiate user indicator class')
@@ -107,10 +111,6 @@ if not BTN1.value and not BTN2.value:
     # So I can read that it worked
     sleep(3)
     microcontroller.reset()
-
-# For testing DELETE THIS LATER
-if not BTN4.value:
-    storage.remount("/", readonly=False, disable_concurrent_write_protection=False)
 
 # Uncomment to for updater testing
 #storage.remount("/", readonly=False, disable_concurrent_write_protection=False)

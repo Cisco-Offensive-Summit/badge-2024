@@ -78,7 +78,7 @@ class UnsupportedEncoding(Exception):
 
 
 class Updater:
-    def __init__(self, ssid, wifipass, repo, branch="main", gh_token="", src_path="/", debug=False, mpy2py=False):
+    def __init__(self, ssid, wifipass, repo, branch="main", gh_token="", src_path="/", debug=False, mpy2py=False, keep_secrets=True):
         self.debug = debug
         self.mpy2py = mpy2py
         
@@ -106,6 +106,7 @@ class Updater:
             self.SRC_PATH = src_path
 
         self.SPECIAL_FILES = ['lib/updater.py', 'boot.py']
+        self.KEEP_SECRETS = keep_secrets
 
         self.USER_PRINT = UserPrint()
         self.USER_INDICATOR = UserIndicator()
@@ -288,6 +289,8 @@ class Updater:
         # Write files
         for i in src_tree["tree"]:
             if i["type"] == "blob":
+                if self.KEEP_SECRETS and "secrets.py" in i["path"]:
+                    continue
                 if i["path"] in self.SPECIAL_FILES:
                     special_files.append([i["path"] + '_tmp', i["path"]])
                     self.mkfile(requests, i["path"] + '_tmp', i["sha"])
