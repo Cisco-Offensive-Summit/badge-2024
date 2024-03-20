@@ -1,4 +1,5 @@
 import board, busio, digitalio, time
+import os, struct
 from supervisor import ticks_ms
 from math import floor
 
@@ -379,7 +380,7 @@ class EPD_DRIVER:
         self._draw_frame(new_pixels, 2, 3, iters)
         
         # Override stored previous image
-        self.prev_pixels = new_pixels
+        self.prev_pixels[:] = new_pixels
 
         # Power off CoG driver
         if not self.superfast:
@@ -387,7 +388,7 @@ class EPD_DRIVER:
         else:
             self._clean_cog_buffer()
 
-    # Update whole image with new data, may cause ghosting if used too frequenly
+    # Update whole image with new data, may cause ghosting if used too frequently
     def update_image(self, new_pixels: bytearray) -> None:
         # Check if bitpacked pixels are what we expect them to be
         if not isinstance(new_pixels, bytearray):
@@ -403,6 +404,7 @@ class EPD_DRIVER:
         if self.frame_iters:
             for i in range(self.frame_iters):
                 for y in range(self.get_height()):
+                    #self._draw_line(y, new_pixels[bpl*y:(bpl*y)+bpl], 2, 3, 0)
                     self._update_line(y, new_pixels[bpl*y:(bpl*y)+bpl], 0)
 
         # Otherwise find how many iterations of drawing gets us to out frame_repeat number of ms
@@ -410,13 +412,14 @@ class EPD_DRIVER:
             start = ticks_ms()
             while True:
                 for y in range(self.get_height()):
+                    #self._draw_line(y, new_pixels[bpl*y:(bpl*y)+bpl], 2, 3, 0)
                     self._update_line(y, new_pixels[bpl*y:(bpl*y)+bpl], 0)
 
                 if ticks_ms() - start > self.frame_repeat:
                     break
 
         # Override stored previous image
-        self.prev_pixels = new_pixels
+        self.prev_pixels[:] = new_pixels
 
         if not self.superfast:
             self._power_off()
@@ -457,140 +460,9 @@ class EPD_DRIVER:
                     break
 
         # Override stored previous image
-        self.prev_pixels = new_pixels
+        self.prev_pixels[:] = new_pixels
 
         if not self.superfast:
             self._power_off()
         else:
-            self._draw_dummy_line()        
-
-    # Display 2 color bitmap
-    def display_2_color_bitmap(self, bitmap_str: str) -> None:
-        import adafruit_imageload
-        from displayio import Bitmap, Palette
-
-        bmp, pal = adafruit_imageload.load(bitmap_str, bitmap=Bitmap, palette=Palette)
-        bitpack = bytearray(b'\x00' * self.get_height() * self.get_bytes_per_line())
-
-        # Pack bitmap to bytesarray
-        bpl = self.get_bytes_per_line()
-        for y in range(min(self.get_height(), bmp.height)):
-            i = -1
-            for x in range(min(self.get_width(), bmp.width)):
-                if x % 8 == 0:
-                    i+=1
-                val = 0 if bmp[x,y] else 1
-                bitpack[(y*bpl)+i] |= val << (x % 8)
-
-        self.change_image(bitpack)
-
-# TODO: Delete this later
-def speed_test():
-    import displayio, adafruit_imageload, io
-    global epd
-    global lcd
-
-    bmp, pal = adafruit_imageload.load('/epd_logo.bmp', bitmap=displayio.Bitmap, palette=displayio.Palette)
-
-    bpl = epd.get_bytes_per_line()
-    pixels = bytearray(b'\x00' * 2400)
-    pixels_alt = bytearray(b'\x00' * 2400)
-    for y in range(96):
-        for x in range(bpl):
-            for z in range(8):
-                val = 0
-                if bmp[(y*bmp.width)+(x*8)+z] == 0:
-                    val = 1
-                pixels[(y*bpl)+x] |= (val << z)
-                if y > 82:
-                    if val == 0:
-                        val = 1
-                    else:
-                        val = 0
-                pixels_alt[(y*bpl)+x] |= (val << z)
-    
-    print("Full image redraw, slow mode")
-    t1 = ticks_ms()
-    epd.change_image(pixels)
-    t2 = ticks_ms()
-    print("Update time = {}ms\n\n".format(t2-t1))
-
-    epd.enable_fast_mode()
-    print("Full image redraw, fast mode")
-    t1 = ticks_ms()
-    epd.change_image(pixels)
-    t2 = ticks_ms()
-    print("Update time = {}ms\n\n".format(t2-t1))
-
-    #epd.display_2_color_bitmap('/epd_logo.bmp')
-
-    alt = False
-
-    acc = []
-    print("Update image timing test. Full image.")
-    for _ in range(10):
-        if alt:
-            print('\tregular')
-            t1 = ticks_ms()
-            epd.update_image(pixels)
-            t2 = ticks_ms()
-            print("\tUpdate time = {}ms".format(t2-t1))
-            acc.append(t2-t1)
-            alt = False
-        else:
-            print('\talt')
-            t1 = ticks_ms()
-            epd.update_image(pixels_alt)
-            t2 = ticks_ms()
-            print("\tUpdate time = {}ms".format(t2-t1))
-            acc.append(t2-t1)
-            alt = True
-        time.sleep(0.01)
-
-    s = 0
-    for i in acc:
-        s += i
-    
-    print("Average time = {}ms\n\n".format(floor(s/len(acc))))
-
-    acc = []
-    print("Update image timing test. Partial image .")
-    for _ in range(10):
-        if alt:
-            print('\tregular')
-            t1 = ticks_ms()
-            epd.update_image_partial(pixels, range(83,96))
-            t2 = ticks_ms()
-            print("\tUpdate_time = {}ms".format(t2-t1))
-            acc.append(t2-t1)
-            alt = False
-        else:
-            print('\talt')
-            t1 = ticks_ms()
-            epd.update_image_partial(pixels_alt, range(83,96))
-            t2 = ticks_ms()
-            print("\tUpdate_time = {}ms".format(t2-t1))
-            acc.append(t2-t1)
-            alt = True
-        time.sleep(0.01)
-
-    epd.disable_fast_mode()
-
-    s = 0
-    for i in acc:
-        s += i
-    
-    print("Average time = {}ms\n\n".format(floor(s/len(acc))))
-
-### Notes
-## Official COG Driver pdf
-# https://www.pervasivedisplays.com/wp-content/uploads/2023/02/4P018-00_04_G2_Aurora-Mb_COG_Driver_Interface_Timing_for_small-size_20231107.pdf
-## Others code:
-# https://github.com/nayuki/Pervasive-Displays-epaper-driver/blob/master/src/EpaperDriver.cpp
-# https://github.com/adafruit/Adafruit_CircuitPython_ST7735R/blob/main/adafruit_st7735r.py
-# https://github.com/peterhinch/micropython-epaper/tree/master
-## Adafruit Docs
-# https://docs.circuitpython.org/en/latest/shared-bindings/fourwire/index.html
-# https://docs.circuitpython.org/en/latest/shared-bindings/busdisplay/index.html
-# https://docs.circuitpython.org/en/latest/shared-bindings/busio/#busio.SPI
-# https://github.com/adafruit/circuitpython/issues/7560
+            self._draw_dummy_line()
