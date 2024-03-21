@@ -13,6 +13,20 @@ def loop_forever():
     while True:
         sleep(1)
 
+def test_blinky():
+    print("Testing Blinky")
+    print("-----------------")
+    led = digitalio.DigitalInOut(board.GPIO6)
+    led.direction = digitalio.Direction.OUTPUT
+
+    for i in range(6):
+        led.value = True
+        sleep(0.25)
+        led.value = False
+        sleep(0.25)
+    
+    led.value = True
+
 def test_neopixels(pixels):
     print("Testing Neopixels")
     print("-----------------")
@@ -192,6 +206,8 @@ def run():
         lcd_fw = FourWire(d_spi, command=board.TFT_DC, chip_select=board.TFT_CS, reset=board.TFT_RST, baudrate=20000000)
         lcd = ST7735R(lcd_fw, width=128, height=128, colstart=2, rowstart=1, rotation=270)
 
+        test_blinky()
+        print()
         test_neopixels(pixels)
         print()
         test_buttons(pixels)
