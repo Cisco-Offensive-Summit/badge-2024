@@ -1,0 +1,137 @@
+import adafruit_requests as requests
+import alarm
+import board
+import displayio
+import neopixel
+import secrets
+import socketpool
+import ssl
+import supervisor
+import terminalio
+import wifi
+from adafruit_display_text.label import Label
+from sys import exit
+from time import sleep
+from utils import init_screens
+from utils import gen_qr_code
+
+lcd, epd = init_screens()
+
+supervisor.runtime.autoreload = False
+###############################################################################
+FONT = terminalio.FONT
+EPD_H = epd.height
+EPD_W = epd.width
+LCD_H = lcd.height
+LCD_W = lcd.width
+###############################################################################
+ORDER = neopixel.RGB
+BLUE = 0x0000FF
+GREEN = 0x00ff00
+RED = 0xFF0000
+OFF = 0x000000
+BLACK = OFF
+WHITE = 0xFFFFFF
+###############################################################################
+SSID = secrets.WIFI_NETWORK
+WIFI_PASSWORD = secrets.WIFI_PASS
+###############################################################################
+HOST = secrets.HOST_ADDRESS
+REGISTRATION_API = 'badge/request_code'                                                                                                               
+URL = HOST + REGISTRATION_API
+METHOD = 'POST'
+HEADERS = {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json'
+}
+JSON = {
+    'uniqueID' : secrets.UNIQUE_ID
+}
+###############################################################################
+L1 = Label(font=FONT,text="Connecting to WIFI",color=WHITE)
+L1.y = L1.height // 2
+L2 = Label(font=FONT,text="Creating session pool", color=WHITE)
+L2.y = L2.height + (L2.height // 2)
+L3 = Label(font=FONT,text="Requesting new code", color=WHITE)
+L3.y = (L3.height * 2) + (L3.height // 2)
+###############################################################################
+# Initialize the badge neopixels
+np =neopixel.NeoPixel(pin=board.NEOPIXEL, n=4, brightness=0.05, pixel_order=ORDER, auto_write=True)
+
+# This sets pin D11 as the button that will wake the badge from deep sleep
+S4_pin_alarm = alarm.pin.PinAlarm(pin=board.BTN4, value=False, pull=True)
+np[0] = GREEN
+np.show()
+splash = displayio.Group()
+lcd.root_group = splash
+splash.append(L1)
+
+# connecting to the network
+wifi.radio.connect(SSID, WIFI_PASSWORD)
+np[1] = GREEN
+np.show()
+splash.append(L2)
+sleep(0.5)
+
+# Creating a socket pool and using that to create a session                                                                                           
+pool = socketpool.SocketPool(wifi.radio)
+session = requests.Session(pool, ssl.create_default_context())
+np[2] = GREEN
+np.show()
+splash.append(L3)
+sleep(0.5)
+
+# Attempting to get a registration code
+rsp = session.request(method=METHOD,url=URL,json=JSON,headers=HEADERS)
+
+# Clear the LCD screen
+for i in range(len(splash)):
+  splash.pop()
+
+# If the request was a sucsess, extract info
+if rsp.status_code == 200:
+  code = rsp.json()['code']
+  register_address = HOST + rsp.json()['address']
+  message = rsp.json()['message']
+  np[0] = GREEN
+  sleep(0.5)
+  np.fill(OFF)
+
+# else the request failed, print error code, flash red lights and exit.
+else:
+  status_code = rsp.status_code
+  message = rsp.json()['message']
+  print(f'Error {status_code}: {message}')
+  for i in range(3):
+    np.fill(RED)
+    sleep(0.25)
+    np.fill(OFF)
+    sleep(0.25)
+
+  exit()
+
+rsp.close()
+
+full_code_url = register_address + '?code=' + code
+# Create and display the QRCode
+gen_qr_code(full_code_url, lcd)
+# Create the label for the exit button
+btn_text = "S4 = Exit"
+text_width = epd._font.width(btn_text)
+font_height = epd._font.font_height
+epd.fill(0)
+epd.fill_rect(0, EPD_H - font_height - 10, text_width + 10, font_height + 10, 1)
+epd.text(btn_text, 5, EPD_H - font_height - 5, 0)
+# Print the Register URL to the e-ink display
+epd.text("Visit the badge website at:", 0,0,1)
+epd.text("badger.becomingahacker.com",0, font_height +2,1)
+epd.text("And click the link 'Register'", 0, (font_height +2)*2, 1)
+epd.text("and use the code '" + code + "' to ", 0, (font_height +2)*3, 1)
+epd.text("create a new account",0, (font_height +2)*4, 1)
+epd.draw()
+
+
+triggered_alarm = alarm.light_sleep_until_alarms(S4_pin_alarm)
+if triggered_alarm.pin == S4_pin_alarm.pin:
+  print("S4 was hit")
+  exit()
