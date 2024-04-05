@@ -1,5 +1,6 @@
 import board, random, time, keypad
 import displayio, digitalio, terminalio
+from microcontroller import nvm 
 
 from app import App
 
@@ -56,8 +57,8 @@ class Brick:
         return False
 
 class TotrisApp(App):
-    def __init__(self, epd: EPD, lcd: ST7735R):
-        super().__init__(epd, lcd)
+    def __init__(self, lcd: ST7735R, epd: EPD):
+        super().__init__(lcd, epd)
         self.buttons = keypad.Keys((
             board.BTN1,
             board.BTN2,
@@ -72,8 +73,56 @@ class TotrisApp(App):
         pass
 
     def run(self):
+        hs = self._get_high_score()
+
+        while self._start_screen():
+            self._start_game()
+
+    def _get_high_score(self):
+        b = nvm[0:4]
+        return int.from_bytes(b, "big", signed=False)
+
+    def _start_screen(self):
         palette = displayio.Palette(6)
         palette[0] = 0x111111
+        palette[1] = 0xaa0099
+        palette[2] = 0x22aa00
+        palette[3] = 0xee00bb
+        palette[4] = 0xbbee00
+        palette[5] = 0xbb00ee
+
+        text_palette = displayio.Palette(2)
+        text_palette[0] = 0x000000
+        text_palette[1] = 0xffeedd
+
+        screen = displayio.Bitmap(32, 32, 6)
+        bricks = displayio.Group(scale=4)
+        bricks.append(displayio.TileGrid(screen, pixel_shader=palette, x=0, y=-8))
+
+
+        w, h = terminalio.FONT.get_bounding_box()
+        text_grid = displayio.TileGrid(terminalio.FONT.bitmap,
+            tile_width=w, tile_height=h, pixel_shader=text_palette, width=21, height=8)
+        text_grid.x = 0
+        text_grid.y = 0
+        text = terminalio.Terminal(text_grid, terminalio.FONT)
+        text.write("  Press S4 to exit\n\n\n\rPress S7 to continue")
+
+        root = displayio.Group()
+        root.append(text_grid)
+        self.lcd.show(root)
+
+        while True:
+            event = self.buttons.events.get()
+            if event:
+                if event.key_number == 3:
+                    return False
+                else:
+                    return True
+
+    def _start_game(self):
+        palette = displayio.Palette(6)
+        palette[0] = 0x000000
         palette[1] = 0xaa0099
         palette[2] = 0x22aa00
         palette[3] = 0xee00bb
@@ -82,12 +131,24 @@ class TotrisApp(App):
         text_palette = displayio.Palette(2)
         text_palette[0] = 0x111111
         text_palette[1] = 0xffeedd
+        game_over_palette = displayio.Palette(2)
+        game_over_palette[0] = 0x111111
+        game_over_palette[1] = 0xc70000
+
         w, h = terminalio.FONT.get_bounding_box()
         text_grid = displayio.TileGrid(terminalio.FONT.bitmap,
             tile_width=w, tile_height=h, pixel_shader=text_palette, width=4, height=2)
         text_grid.x = 96
         text_grid.y = 48
         text = terminalio.Terminal(text_grid, terminalio.FONT)
+
+        game_over_grid = displayio.TileGrid(terminalio.FONT.bitmap, 
+            tile_width=w, tile_height=h, pixel_shader=game_over_palette, width=9, height=2)
+        game_over_grid.x = 32
+        game_over_grid.y = 60
+        game_over_text = terminalio.Terminal(game_over_grid, terminalio.FONT)
+        game_over_text.write("GAME OVER")
+
         screen = displayio.Bitmap(10, 20, 6)
         preview = displayio.Bitmap(4, 4, 6)
         bricks = displayio.Group(scale=8)
@@ -159,3 +220,10 @@ class TotrisApp(App):
             else:
                 brick.y += 1
                 brick.draw(screen)
+
+        root.append(game_over_grid)
+        if score > self._get_high_score():
+            b = score.to_bytes(4, "big", signed=False)
+            nvm[0:4] = b
+
+        time.sleep(1)
