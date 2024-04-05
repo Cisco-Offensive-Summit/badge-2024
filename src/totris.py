@@ -75,8 +75,18 @@ class TotrisApp(App):
     def run(self):
         hs = self._get_high_score()
 
+        self.epd.image("img/totris.bmp")
+        self.epd.text("High Score", 70, 78, 1)
+        self.epd.text(f"{hs:04}", 88, 87, 1)
+        self.epd.draw()
+
         while self._start_screen():
             self._start_game()
+            if self._get_high_score() > hs:
+                self.epd.text(f"{hs:04}", 88, 87, 0)
+                hs = self._get_high_score()
+                self.epd.text(f"{hs:04}", 88, 87, 1)
+                self.epd.update()
 
     def _get_high_score(self):
         b = nvm[0:4]
@@ -112,6 +122,7 @@ class TotrisApp(App):
         root.append(text_grid)
         self.lcd.show(root)
 
+        self.buttons.events.clear()
         while True:
             event = self.buttons.events.get()
             if event:
@@ -226,4 +237,4 @@ class TotrisApp(App):
             b = score.to_bytes(4, "big", signed=False)
             nvm[0:4] = b
 
-        time.sleep(1)
+        time.sleep(4)
