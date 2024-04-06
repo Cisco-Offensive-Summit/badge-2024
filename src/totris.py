@@ -116,7 +116,7 @@ class TotrisApp(App):
         text_grid.x = 0
         text_grid.y = 0
         text = terminalio.Terminal(text_grid, terminalio.FONT)
-        text.write("  Press S4 to exit\n\n\n\rPress S7 to continue")
+        text.write("  Press S7 to play\n\n\n\r  Press S4 to exit")
 
         root = displayio.Group()
         root.append(text_grid)
