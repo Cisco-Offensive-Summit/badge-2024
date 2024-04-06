@@ -5,6 +5,7 @@ except ImportError:
     from displayio import FourWire
 from adafruit_st7735r import ST7735R
 from pdepd import EPD
+import totris
 
 def main():
     import adafruit_imageload, io
@@ -22,6 +23,7 @@ def main():
     # Load and display logo
     epd.image('/img/epd_logo.bmp')
     epd.draw()
+
 
 if __name__ == "__main__":
     main()
