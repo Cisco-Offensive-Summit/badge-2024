@@ -24,6 +24,30 @@ def init_screens():
 
 ###############################################################################
 
+# Wrap text to size
+def wrap_text_to_epd(s: str, display_length:int = 200, char_length:int = 6):
+    words = s.split(' ')
+    ret = []
+
+    acc = 0
+    working_str = ''
+    for word in words:
+        if acc + (len(word) * char_length) <= display_length:
+            acc += (len(word) * char_length) + char_length
+            working_str += word + ' '
+        else:
+            ret.append(working_str)
+            acc = (len(word) * char_length) + char_length
+            working_str = word + ' '
+    
+    if working_str != '':
+        ret.append(working_str)
+
+    return ret
+
+###############################################################################
+
+
 def bitmap_QR(matrix):
     # monochome (2 color) palette
     BORDER_PIXELS = 2
