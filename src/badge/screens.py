@@ -39,6 +39,30 @@ def clear_epd_screen():
   EPD.fill(0)
 
 ###############################################################################
+
+def epd_wrap_message(message):
+  lim = (EPD.width // (EPD._font.font_width + 1))  - 1
+
+  new_msg = []
+  for s in message.split("\n"):
+    if s == "":
+      new_msg += '\n'
+    w=0 
+    l = []
+    for d in s.split():
+      if w + len(d) + 1 <= lim:
+        l.append(d)
+        w += len(d) + 1 
+      else:
+        new_msg.append(" ".join(l))
+        l = [d] 
+        w = len(d)
+    if (len(l)):
+      new_msg.append(" ".join(l))
+
+  return '\n'.join(new_msg)
+
+###############################################################################
 if not (LCD and EPD):
   LCD, EPD = _init_screens()
 
