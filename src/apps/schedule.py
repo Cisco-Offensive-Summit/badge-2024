@@ -7,6 +7,21 @@ from pdepd import EPD
 from adafruit_st7735r import ST7735R
 from utils import wrap_text_to_epd
 
+class InputAck:
+    def __init__(self):
+        self.group = displayio.Group()
+        
+        self.inputack_area = label.Label(terminalio.FONT, text="Input Recieved")
+        self.inputack_area.anchor_point = (0.5,0.5)
+        self.inputack_area.anchored_position = (64, 64)
+        self.inputack_area.color = 0x111111
+        self.inputack_area.background_color = 0x00FF00
+        
+        self.group.append(self.inputack_area)
+
+    def get_group(self):
+        return self.group
+
 class LCDTitle:
     def __init__(self):
         self.WRAP_WIDTH = 124
@@ -143,13 +158,19 @@ class ScheduleApp:
     def run(self):
         import adafruit_fakerequests
         schedule_json = adafruit_fakerequests.Fake_Requests("/old_sched.json").json()
+
+        main_group = displayio.Group()
+        self.lcd.show(main_group)
         title = LCDTitle()
         desc = EPDDescription()
-        
-        title.set_data(schedule_json["tracks"][0]["talks"][1]["title"], schedule_json["tracks"][0]["name"], schedule_json["tracks"][0]["talks"][1]["meta"])
-        self.lcd.show(title.get_group())
 
-        desc.set_data(self.epd, schedule_json["tracks"][0]["talks"][1]["desc"])
+        title.set_data(schedule_json["tracks"][0]["talks"][3]["title"], schedule_json["tracks"][0]["name"], schedule_json["tracks"][0]["talks"][3]["meta"])
+        main_group.append(title.get_group())
+
+        input_ack = InputAck()
+        input_ack_group = input_ack.get_group()
+
+        desc.set_data(self.epd, schedule_json["tracks"][0]["talks"][3]["desc"])
         self.epd.draw()
 
         self.buttons.events.clear()
@@ -157,7 +178,10 @@ class ScheduleApp:
             time.sleep(0.025)
             title.update()
             event = self.buttons.events.get()
-            if event:
+            if event and event.pressed:
+                main_group.append(input_ack_group)
+                time.sleep(0.5)
+                main_group.pop()
                 if event.key_number == 3:
                     if desc.update(self.epd, True):
                         self.epd.draw()
@@ -166,6 +190,7 @@ class ScheduleApp:
                         self.epd.draw()
                 elif event.key_number == 0:
                     break
+                self.buttons.events.clear()
 
 
 def test_app():
