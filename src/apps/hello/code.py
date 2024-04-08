@@ -17,6 +17,7 @@ from badge.neopixels import NP
 from badge.screens import LCD, EPD
 from badge.screens import clear_lcd_screen
 from badge.screens import clear_epd_screen
+from badge.screens import epd_wrap_message
 
 supervisor.runtime.autoreload = False
 ###############################################################################
@@ -104,7 +105,6 @@ def request_data(hello_json):
   if 'size' in hello_json.keys():
     JSON['size'] = hello_json['size']
   rsp = session.request(method=METHOD,url=URL,json=JSON,headers=HEADERS)
-
   # If the request was a sucsess, extract info
   if rsp.status_code == 200:
     NP[0] = GREEN
@@ -117,7 +117,7 @@ def request_data(hello_json):
   else:
     status_code = rsp.status_code
     message = rsp.json()['message']
-    print(f'Error {status_code}: {message}')
+    epd_print_error(f'Error {status_code}: \n{message}')
     for i in range(3):
       NP.fill(RED)
       sleep(0.25)
@@ -153,6 +153,14 @@ def build_name_tag(hello_json):
 
   EPD.fill(bg_color)
   EPD.text(name,x,y,color,size=scale)
+  EPD.draw()
+
+###############################################################################
+
+def epd_print_error(message):
+
+  EPD.fill(0)
+  EPD.text(epd_wrap_message(message),0,0,1,size=1)
   EPD.draw()
 
 ###############################################################################
@@ -211,7 +219,7 @@ def main():
     triggered_alarm = alarm.light_sleep_until_alarms(S4_pin_alarm, S7_pin_alarm)
     if triggered_alarm.pin == S7_pin_alarm.pin:
       exit()
-    hello_json, new_file = request_data(hello_json)
+    hello_json = request_data(hello_json)
     with open('hello.json', 'w') as j:
       json.dump(hello_json, j)
 
