@@ -6,7 +6,6 @@ import supervisor
 import wifi
 from badge.colors import *
 from badge.neopixels import NP
-from badge.screens import EPD, epd_wrap_message
 from secrets import HOST_ADDRESS as HOST
 from secrets import WIFI_NETWORK as SSID
 from secrets import WIFI_PASS
@@ -41,16 +40,6 @@ def flash_red(count):
 
 ###############################################################################
 
-def epd_error_message(message,count):
-
-  flash_red(count)
-  EPD.fill(0)
-  EPD.text(epd_wrap_message(message),0,0,1,size=1)
-  EPD.draw()
-  return
-
-###############################################################################
-
 def connect_wifi():
   if wifi.radio.connected:
     return True
@@ -73,7 +62,7 @@ def get_token():
   sleep(0.5)
 
   if not connect_wifi():
-    epd_error_message("Could not connect to the wifi network.",1)
+    flash_red(1)
     return False
 
   NP[1] = GREEN
@@ -99,13 +88,13 @@ def get_token():
         return True
 
     except OSError as e:  # Typically when the filesystem isn't 
-      epd_error_message("Drive not in a writable state", 5)
+      flash_red(5)
       return False
   # else the request failed, print error code, flash red lights and exit.
   else:
     status_code = rsp.status_code
     message = rsp.json()['message']
-    epd_error_message(f'Error {status_code}: \n{message}',3 )
+    flash_red(3)
     rsp.close()
     return False
 
