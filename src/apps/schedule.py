@@ -253,9 +253,14 @@ class EPDDescription:
         
 
 class ScheduleApp:
-    def __init__(self, lcd: ST7735R, epd: EPD):
+    def __init__(self, lcd: ST7735R, epd: EPD, ssid: str, wifipass: str, sched_endpoint: str):
         self.lcd = lcd
         self.epd = epd
+
+        self.ssid = ssid
+        self.wifipass = wifipass
+        self.sched_endpoint = sched_endpoint
+
         self.buttons = keypad.Keys((
             board.BTN1,
             board.BTN2,
@@ -265,6 +270,19 @@ class ScheduleApp:
 
     def __del__(self) -> None:
         pass
+
+    def _connect_wifi(self):
+        if wifiradio.connected:
+            return True
+        
+        for i in range(5):
+            try:
+                wifiradio.connect(self.SSID, self.WIFIPASS)
+                return wifiradio.connected
+            except:
+                None
+
+        return False
 
     # Get schedule from server
     def _get_schedule(self, url: str):
@@ -364,13 +382,3 @@ class ScheduleApp:
                     select.input(True)
 
                 self.buttons.events.clear()
-
-
-def test_app():
-    import adafruit_fakerequests
-    from utils import init_screens
-
-    lcd, epd = init_screens()
-
-    sched = ScheduleApp(lcd, epd)
-    sched.run()
