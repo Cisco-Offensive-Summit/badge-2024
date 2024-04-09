@@ -107,7 +107,7 @@ def request_data(hello_json):
   rsp = session.request(method=METHOD,url=URL,json=JSON,headers=HEADERS)
   # If the request was a sucsess, extract info
   if rsp.status_code == 200:
-    NP[0] = GREEN
+    NP[3] = GREEN
     sleep(0.5)
     NP.fill(OFF)
     rsp_body_json = rsp.json()
