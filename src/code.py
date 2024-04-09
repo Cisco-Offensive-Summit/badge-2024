@@ -5,7 +5,6 @@ except ImportError:
     from displayio import FourWire
 from adafruit_st7735r import ST7735R
 from pdepd import EPD
-import totris
 
 def main():
     import adafruit_imageload, io
