@@ -1,8 +1,13 @@
 import board, time, keypad
 import displayio, digitalio, terminalio
+import adafruit_requests
 from microcontroller import nvm
 from adafruit_display_text import label, wrap_text_to_pixels
 from adafruit_display_text.scrolling_label import ScrollingLabel
+from traceback import format_exception
+from wifi import radio as wifiradio
+from ssl import create_default_context
+from socketpool import SocketPool
 
 from pdepd import EPD
 from adafruit_st7735r import ST7735R
@@ -16,6 +21,49 @@ def meta_date(meta: int) -> str:
 
     return f"{month}-{day} {hour}:{minute}"
 
+class WifiUnreachable(Exception):
+    def __init__(self, message):
+        self.message = message          
+        super().__init__(message)
+    def __str__(self):
+        return self.message
+
+class EndpointNotReachable(Exception):
+    def __init__(self, message):
+        self.message = message       
+        super().__init__(message)
+    def __str__(self):
+        return self.message
+
+class EndpointBadCredentials(Exception):
+    def __init__(self, message):
+        self.message = message
+        super().__init__(message)
+    def __str__(self):
+        return self.message
+
+class EndpointUnknownResponse(Exception):
+    def __init__(self, message):
+        self.message = message
+        super().__init__(message)
+    def __str__(self):
+        return self.message
+
+class LCDLoading:
+    def __init__(self):
+        self.group = displayio.Group()
+        self.loading_area = label.Label(terminalio.FONT, text='\n'.join(wrap_text_to_pixels("Retrieving schedule, please wait...", 126, terminalio.FONT)))
+        self.loading_area.anchor_point = (0,0)
+        self.loading_area.anchored_position = (2, 2)
+        self.group.append(self.loading_area)
+
+    def get_group(self):
+        return self.group
+
+    def set_error(self, text):
+        self.loading_area.text = '\n'.join(wrap_text_to_pixels(text, 126, terminalio.FONT))
+        self.loading_area.color = 0x111111
+        self.loading_area.background_color = 0xFF0000
 
 class InputAck:
     def __init__(self):
@@ -208,6 +256,7 @@ class EPDTalks:
         epd.fill(0)
         epd.fill_rect(0, 0, 200, 9, 1)
         epd.text("Up | Down  <Talks>  Select | Exit", 1, 1, 0)
+        epd.text("S4 - Up\nS3 - Down\nS2 - Select\nS1 - Exit", 1, 10, 1)
 
 class EPDDescription:
     def __init__(self):
@@ -253,12 +302,13 @@ class EPDDescription:
         
 
 class ScheduleApp:
-    def __init__(self, lcd: ST7735R, epd: EPD, ssid: str, wifipass: str, sched_endpoint: str):
+    def __init__(self, lcd: ST7735R, epd: EPD, ssid: str, wifipass: str, sched_endpoint: str, unique_id: str):
         self.lcd = lcd
         self.epd = epd
 
         self.ssid = ssid
         self.wifipass = wifipass
+        self.unique_id = unique_id
         self.sched_endpoint = sched_endpoint
 
         self.buttons = keypad.Keys((
@@ -277,7 +327,7 @@ class ScheduleApp:
         
         for i in range(5):
             try:
-                wifiradio.connect(self.SSID, self.WIFIPASS)
+                wifiradio.connect(self.ssid, self.wifipass)
                 return wifiradio.connected
             except:
                 None
@@ -286,9 +336,26 @@ class ScheduleApp:
 
     # Get schedule from server
     def _get_schedule(self, url: str):
-        # TODO: implement non local schedule
-        import adafruit_fakerequests
-        return adafruit_fakerequests.Fake_Requests("/old_sched.json").json()
+        if not self._connect_wifi():
+            raise WifiUnreachable(f"Could not connect to wifi network '{self.ssid}'")
+        
+        pool = SocketPool(wifiradio)
+        ssl_context = create_default_context()
+        requests = adafruit_requests.Session(pool, ssl_context)
+
+        data = {"uniqueID": self.unique_id}
+
+        resp = requests.get(self.sched_endpoint, data=data)
+        sc = resp.status_code
+
+        if sc == 200:
+            return resp.json()
+        elif sc == 404:
+            raise EndpointNotReachable(f"Could not reach endpoint: {self.sched_endpoint}.")
+        elif sc == 401:
+            raise EndpointBadCredentials(f"User token was rejected at endpoint: {self.sched_endpoint}.")
+        else:
+            raise EndpointUnknownResponse(f"Unknown response. Code {sc} reason {resp.reason}")
 
     # Sort schedule
     def _get_schedule_list(self, json: str):
@@ -303,11 +370,27 @@ class ScheduleApp:
 
     # Main entry
     def run(self):
-        schedule_json = self._get_schedule("/old_sched.json")
-        sorted_schedule = self._get_schedule_list(schedule_json)
-        
         main_group = displayio.Group()
         self.lcd.show(main_group)
+
+        loading = LCDLoading()
+        main_group.append(loading.get_group())
+        
+        try: 
+            schedule_json = self._get_schedule("/old_sched.json")
+        except Exception as e:
+            loading.set_error(f"{e}")
+            time.sleep(10)
+            raise e
+
+        try: 
+            sorted_schedule = self._get_schedule_list(schedule_json)
+        except Exception as e:
+            loading.set_error(f"{'\n'.join(format_exception(e))}")
+            time.sleep(10)
+            raise e
+
+        main_group.pop()
 
         # Classes
         select = LCDTalksList(sorted_schedule)
