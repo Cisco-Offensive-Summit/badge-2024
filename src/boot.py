@@ -17,6 +17,10 @@ BTN2 = digitalio.DigitalInOut(board.BTN2)
 BTN2.direction = digitalio.Direction.INPUT
 BTN2.pull = digitalio.Pull.UP
 
+BTN3 = digitalio.DigitalInOut(board.BTN3)
+BTN3.direction = digitalio.Direction.INPUT
+BTN3.pull = digitalio.Pull.UP
+
 BTN4 = digitalio.DigitalInOut(board.BTN4)
 BTN4.direction = digitalio.Direction.INPUT
 BTN4.pull = digitalio.Pull.UP
@@ -112,5 +116,12 @@ if not BTN1.value and not BTN2.value:
     sleep(3)
     microcontroller.reset()
 
-# Uncomment to for updater testing
-#storage.remount("/", readonly=False, disable_concurrent_write_protection=False)
+if not BTN4.value and not BTN3.value:
+  storage.remount("/", readonly=False, disable_concurrent_write_protection=False)
+  from get_token import get_token
+  success = get_token()
+  if success:
+    microcontroller.reset()
+
+  else:
+    sleep(600)
