@@ -343,9 +343,11 @@ class ScheduleApp:
         ssl_context = create_default_context()
         requests = adafruit_requests.Session(pool, ssl_context)
 
+        headers = {"Content-Type": "application/json"}
+
         data = {"uniqueID": self.unique_id}
 
-        resp = requests.get(self.sched_endpoint, data=data)
+        resp = requests.request("GET", self.sched_endpoint, None, data, headers)
         sc = resp.status_code
 
         if sc == 200:
