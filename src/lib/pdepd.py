@@ -776,6 +776,67 @@ class FrameBuffer:
                     self._font.draw_char(char, char_x, y, self, color, size=size)
             y += height * size
 
+class MemoryBitmapFont:
+    """A Helper class to read binary font tiles and store them in memory for
+    faster lookup time"""
+    def __init__(self, font_name="font5x8.bin"):
+        self.font_name = font_name
+
+        # Open the font file and grab the character width and height values.
+        # Note that only fonts up to 8 pixels tall are currently supported.
+        try:
+            font_file = open(self.font_name, "rb")
+            self._font = font_file.read()
+            self.font_width, self.font_height = struct.unpack("BB", self._font[0:2])
+            # simple font file validation check based on expected file size
+            if 2 + 256 * self.font_width != os.stat(font_name)[6]:
+                raise RuntimeError("Invalid font file: " + font_name)
+        except OSError:
+            print("Could not find font file", font_name)
+            raise
+        except OverflowError:
+            # os.stat can throw this on boards without long int support
+            # just hope the font file is valid and press on
+            pass
+    
+    def deinit(self):
+        """Close the font file as cleanup."""
+        del self._font
+    
+    def __enter__(self):
+        """Initialize/open the font file"""
+        self.__init__()
+        return self
+
+    def __exit__(self, exception_type, exception_value, traceback):
+        """cleanup on exit"""
+        self.deinit()
+
+    def draw_char(self, char, x, y, framebuffer, color, size=1):
+        """Draw one character at position (x,y) to a framebuffer in a given color"""
+        size = max(size, 1)
+        # Don't draw the character if it will be clipped off the visible area.
+        # if x < -self.font_width or x >= framebuffer.width or \
+        #   y < -self.font_height or y >= framebuffer.height:
+        #    return
+        # Go through each column of the character.
+        for char_x in range(self.font_width):
+            # Grab the byte for the current column of font data.
+            try:
+                line = self._font[2 + (ord(char) * self.font_width) + char_x]
+            except IndexError:
+                continue  # maybe character isnt there? go to next
+            # Go through each row in the column byte.
+            for char_y in range(self.font_height):
+                # Draw a pixel for each bit that's flipped on.
+                if (line >> char_y) & 0x1:
+                    framebuffer.fill_rect(
+                        x + char_x * size, y + char_y * size, size, size, color
+                    )
+
+    def width(self, text):
+        """Return the pixel width of the specified text message."""
+        return len(text) * (self.font_width + 1)
 
 # MicroPython basic bitmap font renderer.
 # Author: Tony DiCola

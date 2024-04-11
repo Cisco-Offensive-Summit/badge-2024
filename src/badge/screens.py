@@ -7,7 +7,7 @@ except ImportError:
     from displayio import FourWire
 from adafruit_st7735r import ST7735R
 from pdepd import EPD as EPD_Class
-from pdepd import BitmapFont
+from pdepd import MemoryBitmapFont
 
 LCD = None
 EPD = None
@@ -23,7 +23,7 @@ def _init_screens():
     lcd_fw = FourWire(d_spi, command=board.TFT_DC, chip_select=board.TFT_CS, reset=board.TFT_RST, baudrate=20000000)
     LCD = ST7735R(lcd_fw, width=128, height=128, colstart=2, rowstart=1, rotation=270)
     EPD = EPD_Class(d_spi)
-    EPD._font = BitmapFont("font/font5x8.bin")
+    EPD._font = MemoryBitmapFont("font/font5x8.bin")
 
     return LCD, EPD
 
