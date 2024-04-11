@@ -951,20 +951,23 @@ class EPD(FrameBuffer):
         """Draw a frame, takes longer due to full EPD refresh"""
         self.driver.change_image(self.buf)
 
-    def image(self, img_path: str) -> None:
+    def image(self, img_path: str, x:int=0, y:int=0) -> None:
         """Draw an bitmap image, must be 1 bit color"""
         import adafruit_imageload
         from displayio import Bitmap, Palette
 
+        if x < 0 or y < 0: 
+            raise IndexError("Coordinate position must be positive integers")
+
         self.format.fill(self, 0)
         bmp, pal = adafruit_imageload.load(img_path, bitmap=Bitmap, palette=Palette)
 
-        bpl = self.driver.get_bytes_per_line()
-        for y in range(min(self.driver.get_height(), bmp.height)):
-            i = -1
-            for x in range(min(self.driver.get_width(), bmp.width)):
-                if not bmp[x,y]:
-                    self.format.set_pixel(self, x, y, 1)
+        for yy in range(min(self.driver.get_height(), bmp.height)):
+            for xx in range(min(self.driver.get_width(), bmp.width)):
+                # if pixel val is not pure white
+                if pal[bmp[xx,yy]] != 0xFFFFFF:
+                    if yy+y < self.driver.get_height() and xx+x < self.driver.get_width():
+                        self.format.set_pixel(self, xx+x, yy+y, 1)
 
     def pretty_print_buffer(self) -> None:
         """Prints what the buffer will look like in ascii text"""
