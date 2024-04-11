@@ -11,8 +11,9 @@ from socketpool import SocketPool
 
 from pdepd import EPD
 from adafruit_st7735r import ST7735R
-from utils import wrap_text_to_epd
+import badge.neopixels
 
+# Convert meta integer to date string
 def meta_date(meta: int) -> str:
     month = f"{meta>>15:02d}"
     day = f"{(meta & 0x7fff)>>10:02d}"
@@ -20,6 +21,28 @@ def meta_date(meta: int) -> str:
     minute = f"{(((meta & 0x3ff)>>4)%4)*15:02d}"
 
     return f"{month}-{day} {hour}:{minute}"
+
+# Wrap text to size
+def wrap_text_to_epd(s: str, display_length:int = 200, char_length:int = 6):
+    words = s.split(' ')
+    ret = []
+
+    acc = 0
+    working_str = ''
+    for word in words:
+        if acc + (len(word) * char_length) <= display_length:
+            acc += (len(word) * char_length) + char_length
+            working_str += word + ' '
+        else:
+            ret.append(working_str)
+            acc = (len(word) * char_length) + char_length
+            working_str = word + ' '
+    
+    if working_str != '':
+        ret.append(working_str)
+
+    return ret
+
 
 class WifiUnreachable(Exception):
     def __init__(self, message):
@@ -335,7 +358,7 @@ class ScheduleApp:
         return False
 
     # Get schedule from server
-    def _get_schedule(self, url: str):
+    def _get_schedule(self):
         if not self._connect_wifi():
             raise WifiUnreachable(f"Could not connect to wifi network '{self.ssid}'")
         
@@ -354,8 +377,8 @@ class ScheduleApp:
             return resp.json()
         elif sc == 404:
             raise EndpointNotReachable(f"Could not reach endpoint: {self.sched_endpoint}.")
-        elif sc == 401:
-            raise EndpointBadCredentials(f"User token was rejected at endpoint: {self.sched_endpoint}.")
+        elif sc <= 400 and sc < 500:
+            raise EndpointBadCredentials(f"Token rejected at endpoint: {self.sched_endpoint}. Make sure you have registered your badge!")
         else:
             raise EndpointUnknownResponse(f"Unknown response. Code {sc} reason {resp.reason}")
 
@@ -379,7 +402,7 @@ class ScheduleApp:
         main_group.append(loading.get_group())
         
         try: 
-            schedule_json = self._get_schedule("/old_sched.json")
+            schedule_json = self._get_schedule()
         except Exception as e:
             loading.set_error(f"{e}")
             time.sleep(10)
@@ -416,6 +439,10 @@ class ScheduleApp:
             if event and event.pressed:
                 # BTN1 Exit
                 if event.key_number == 0:
+                    for i in range(len(main_group)):
+                        main_group.pop()
+                    self.epd.fill(0)
+                    self.epd.update()
                     return
 
                 # BTN2 Select
@@ -433,12 +460,19 @@ class ScheduleApp:
 
                         subevent = self.buttons.events.get()
                         if subevent and subevent.pressed:
+
                             main_group.append(input_ack_group)
+                            badge.neopixels.NP.fill(0x00FF00)
                             time.sleep(0.5)
+                            badge.neopixels.NP.fill(0x000000)
                             main_group.pop()
 
                             # BTN1 Exit
                             if subevent.key_number == 0:
+                                for i in range(len(main_group)):
+                                    main_group.pop()
+                                self.epd.fill(0)
+                                self.epd.update()
                                 return
                             # BTN2 Back
                             elif subevent.key_number == 1:
