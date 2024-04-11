@@ -1,40 +1,145 @@
-import board, displayio, busio
-try:
-    from FourWire import fourwire
-except ImportError:
-    from displayio import FourWire
-from adafruit_st7735r import ST7735R
-from pdepd import EPD
-from adafruit_display_text import label, wrap_text_to_pixels
-import time, terminalio
+import asyncio
+import json
+import sys
 
-def main():
-    import adafruit_imageload, io
+import badge.buttons
+import badge.events as evt
+import microcontroller
+import supervisor
+from badge.app import APPLIST
+from badge.events import on
+#from badge.launcher_ui import render_main
+from badge.log import info, log
+from badge.neopixels import set_neopixel, set_neopixels
+from badge.ziplist import ziplist
+from badge.screens import LCD
 
-    # Just in case...
-    displayio.release_displays()
-    
-    d_spi = busio.SPI(board.EINK_CLKS, board.EINK_MOSI, board.EINK_MISO)
-    lcd_fw = FourWire(d_spi, command=board.TFT_DC, chip_select=board.TFT_CS, reset=board.TFT_RST, baudrate=20000000)
+supervisor.runtime.autoreload = False
 
-    lcd = ST7735R(lcd_fw, width=128, height=128, colstart=2, rowstart=1, rotation=270)
+INDICATORS = [
+    (1, 0, 0, 0),
+    (0, 1, 0, 0)
+#    (0, 0, 1, 0)
+#    (0, 0, 0, 1),
+#    (2, 1, 1, 1),
+#    (1, 2, 1, 1),
+#    (1, 1, 2, 1),
+#    (1, 1, 1, 2),
+]
 
-    epd = EPD(d_spi)
+OFF, DIM, BRIGHT = (0, 0, 0), (22, 22, 0), (96, 96, 0)
 
-    # Load and display logo
-    epd.image('/img/epd_logo.bmp')
-    epd.draw()
+NEO_STATES = [OFF, DIM, BRIGHT]
 
-    group = displayio.Group()
-    text_area = label.Label(terminalio.FONT, text='\n'.join(wrap_text_to_pixels("Please visit https://badger.becomingahacker.com/badge_info to update your badge", 126, terminalio.FONT)))
-    text_area.anchor_point = (0,0)
-    text_area.anchored_position = (2, 2)
-    group.append(text_area)
 
-    lcd.show(group)
-    while True:
-        time.sleep(1)
+def get_neo_update_vals(pattern):
+    ret = [NEO_STATES[i] for i in pattern]
+    return ret
+
+
+sel_entries = list(zip(APPLIST, INDICATORS))
+SELECTO = ziplist(sel_entries)
+
+# If there's at least one app entry, then set the indicator light.
+if APPLIST:
+    set_neopixels(*get_neo_update_vals(INDICATORS[0]))
+
+
+@on(evt.BTN_A_PRESSED)
+def choose_next_app(event):
+    # on press, just light the light to indicate
+    # press received, but don't actually advance the
+    # selector until button release. not sure why, but
+    # feels like this is how it should work.
+    set_neopixel("a", 255)
+
+
+@on(evt.BTN_A_RELEASED)
+def a_released(event):
+    # turn it off
+    set_neopixel("a", 0)
+    # advance to next app
+    SELECTO.forward()
+    _, indicator = SELECTO.current()
+    vals = get_neo_update_vals(indicator)
+    set_neopixels(*vals)
+    print(SELECTO.current())
+
+@on(evt.BTN_D_PRESSED)
+def D_pressed(event):
+    set_neopixel("d", 255)
+
+
+@on(evt.BTN_D_RELEASED)
+def d_released(event):
+    set_neopixel("d", 0)
+    current = SELECTO.current()
+    entry = current[0]
+    log("app_launching", entry.code_file, type(entry.code_file))
+    launch_app(entry)
+
+
+def nvm_store_config(new_boot_config):
+    json_bytes = bytes(json.dumps(new_boot_config), "ascii")
+    len_json = len(json_bytes)
+    microcontroller.nvm[0:len_json] = json_bytes
+    log(f"stored nvm config: {json_bytes}")
+
+
+def launch_app(entry):
+    new_boot_config = entry.boot_config
+    log("launch_app", repr(new_boot_config))
+    if new_boot_config:
+        new_boot_config["next_code_file"] = entry.code_file
+        nvm_store_config(new_boot_config)
+        microcontroller.reset()
+        sys.exit(0)
+
+    supervisor.set_next_code_file(entry.code_file)
+    supervisor.reload()
+    sys.exit(0)
+
+
+async def main():
+    # log("main", APPLIST)
+    #render_main(APPLIST)
+
+    # info_task = asyncio.create_task(info())
+    button_tasks = badge.buttons.start_tasks(interval=0.05)
+    event_tasks = evt.start_tasks()
+    # all_tasks = [info_task, battery_task] + button_tasks + event_tasks
+    all_tasks = [] + button_tasks + event_tasks
+    await asyncio.gather(*all_tasks)
+
+
+def clear_nvm():
+    nvm = microcontroller.nvm
+    nvm_len = len(microcontroller.nvm)
+    zeros = b"\x00" * nvm_len
+    # Check if clear is needed since nvm has a write lifetime
+    if nvm[:] != zeros:
+        nvm[:] = zeros
+
+
+def run():
+    # Use a  stored next_code_file from nvm first
+    next_code_file = None
+    try:
+        cfg = json.loads(microcontroller.nvm[:])
+        next_code_file = cfg.get("next_code_file", None)
+    except Exception:
+        pass
+        # log("ERR read_nvm_config", repr(e))
+    if next_code_file:
+        log("Next code file:", next_code_file)
+        clear_nvm()
+        supervisor.set_next_code_file(next_code_file)
+        supervisor.reload()
+        sys.exit(0)
+    # If continuing, set nvm back to blank and continue as usual
+    clear_nvm()
+    asyncio.run(main())
 
 
 if __name__ == "__main__":
-    main()
+    run()
