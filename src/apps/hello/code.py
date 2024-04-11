@@ -3,6 +3,7 @@ import alarm
 import board
 import displayio
 import json
+import microcontroller
 import secrets
 import socketpool
 import ssl
@@ -218,7 +219,7 @@ def main():
   while True:
     triggered_alarm = alarm.light_sleep_until_alarms(S4_pin_alarm, S7_pin_alarm)
     if triggered_alarm.pin == S7_pin_alarm.pin:
-      exit()
+      microcontroller.reset()
     hello_json = request_data(hello_json)
     with open('hello.json', 'w') as j:
       json.dump(hello_json, j)
