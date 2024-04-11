@@ -1,8 +1,9 @@
 import board, random, time, keypad
 import displayio, digitalio, terminalio
+from adafruit_display_text import label
 from microcontroller import nvm 
 
-from app import App
+from badge.neopixels import NP
 
 class Brick:
     BRICKS = b'ftqr\xf0'
@@ -56,15 +57,17 @@ class Brick:
                 mask <<= 1
         return False
 
-class TotrisApp(App):
+class TotrisApp:
     def __init__(self, lcd: ST7735R, epd: EPD):
-        super().__init__(lcd, epd)
+        self.lcd = lcd
+        self.epd = epd
         self.buttons = keypad.Keys((
             board.BTN1,
             board.BTN2,
             board.BTN3,
             board.BTN4,
         ), value_when_pressed=False)
+        NP.brightness = 0.1
 
     def __del__(self):
         self.buttons.deinit()
@@ -93,43 +96,58 @@ class TotrisApp(App):
         return int.from_bytes(b, "big", signed=False)
 
     def _start_screen(self):
-        palette = displayio.Palette(6)
-        palette[0] = 0x111111
-        palette[1] = 0xaa0099
-        palette[2] = 0x22aa00
-        palette[3] = 0xee00bb
-        palette[4] = 0xbbee00
-        palette[5] = 0xbb00ee
 
-        text_palette = displayio.Palette(2)
-        text_palette[0] = 0x000000
-        text_palette[1] = 0xffeedd
+        start_label = label.Label(terminalio.FONT, text="Press S7 to play")
+        start_label.anchor_point = (0.5, 0.5)
+        start_label.anchored_position = (64, 16)
 
-        screen = displayio.Bitmap(32, 32, 6)
-        bricks = displayio.Group(scale=4)
-        bricks.append(displayio.TileGrid(screen, pixel_shader=palette, x=0, y=-8))
+        lights_label = label.Label(terminalio.FONT, text="Press S6 to disable\n  flashing lights")
+        lights_label.anchor_point = (0.5, 0.5)
+        lights_label.anchored_position = (64, 56)
 
+        if NP.brightness == 0:
+            lt = "Lights are OFF"
+            lc = 0xFFFF00
+        else:
+            lt = "Lights are ON"
+            lc = 0x00FF00
 
-        w, h = terminalio.FONT.get_bounding_box()
-        text_grid = displayio.TileGrid(terminalio.FONT.bitmap,
-            tile_width=w, tile_height=h, pixel_shader=text_palette, width=21, height=8)
-        text_grid.x = 0
-        text_grid.y = 0
-        text = terminalio.Terminal(text_grid, terminalio.FONT)
-        text.write("  Press S7 to play\n\n\n\r  Press S4 to exit")
+        light_indicator = label.Label(terminalio.FONT, text=lt)
+        light_indicator.anchor_point = (0.5, 0.5)
+        light_indicator.anchored_position = (64, 75)
+        light_indicator.color = lc
+
+        exit_label = label.Label(terminalio.FONT, text="Press S4 to exit")
+        exit_label.anchor_point = (0.5, 0.5)
+        exit_label.anchored_position = (64, 112)
 
         root = displayio.Group()
-        root.append(text_grid)
+        root.append(start_label)
+        root.append(lights_label)
+        root.append(light_indicator)
+        root.append(exit_label)
         self.lcd.show(root)
 
         self.buttons.events.clear()
         while True:
             event = self.buttons.events.get()
-            if event:
+            if event and event.pressed:
+                if event.key_number == 0:
+                    return True
+                if event.key_number == 1:
+                    if NP.brightness == 0:
+                        NP.brightness = 0.1
+                        light_indicator.color = 0x00FF00
+                        light_indicator.text = "Lights are ON"
+                    else:
+                        NP.brightness = 0
+                        light_indicator.color = 0xFFFF00
+                        light_indicator.text = "Lights are OFF"
+
                 if event.key_number == 3:
                     return False
                 else:
-                    return True
+                    pass
 
     def _start_game(self):
         palette = displayio.Palette(6)
@@ -139,37 +157,47 @@ class TotrisApp(App):
         palette[3] = 0xee00bb
         palette[4] = 0xbbee00
         palette[5] = 0xbb00ee
-        text_palette = displayio.Palette(2)
-        text_palette[0] = 0x111111
-        text_palette[1] = 0xffeedd
-        game_over_palette = displayio.Palette(2)
-        game_over_palette[0] = 0x111111
-        game_over_palette[1] = 0xc70000
+        bg_palette = displayio.Palette(2)
+        bg_palette[0] = 0x888888
+        bg_palette[1] = 0x000000
 
-        w, h = terminalio.FONT.get_bounding_box()
-        text_grid = displayio.TileGrid(terminalio.FONT.bitmap,
-            tile_width=w, tile_height=h, pixel_shader=text_palette, width=4, height=2)
-        text_grid.x = 96
-        text_grid.y = 48
-        text = terminalio.Terminal(text_grid, terminalio.FONT)
 
-        game_over_grid = displayio.TileGrid(terminalio.FONT.bitmap, 
-            tile_width=w, tile_height=h, pixel_shader=game_over_palette, width=9, height=2)
-        game_over_grid.x = 32
-        game_over_grid.y = 60
-        game_over_text = terminalio.Terminal(game_over_grid, terminalio.FONT)
-        game_over_text.write("GAME OVER")
+        score_label_area = label.Label(terminalio.FONT, text ='Score:')
+        score_label_area.anchor_point = (0.5,0.5)
+        score_label_area.anchored_position = (105, 75)
+        score_label_area.color = 0x000000
+
+        score_area = label.Label(terminalio.FONT, text='0000')
+        score_area.anchor_point = (0.5,0.5)
+        score_area.anchored_position = (105, 90)
+        score_area.color = 0x000000
+
+        game_over_area = label.Label(terminalio.FONT, text='    GAME OVER     ')
+        game_over_area.anchor_point = (0.5, 0.5)
+        game_over_area.anchored_position = (64, 64)
+        game_over_area.color = 0xc70000
+        game_over_area.background_color = 0x000000
+
+        preview_label_area = label.Label(terminalio.FONT, text='Next')
+        preview_label_area.anchor_point = (0.5, 0.5)
+        preview_label_area.anchored_position = (105, 9)
+        preview_label_area.color = 0x000000
 
         screen = displayio.Bitmap(10, 20, 6)
         preview = displayio.Bitmap(4, 4, 6)
         bricks = displayio.Group(scale=8)
         bricks.append(displayio.TileGrid(screen, pixel_shader=palette, x=0, y=-4))
-        bricks.append(displayio.TileGrid(preview, pixel_shader=palette, x=12, y=0))
+        bricks.append(displayio.TileGrid(preview, pixel_shader=palette, x=11, y=2))
+        bg_bitmap = displayio.Bitmap(8, 8, 6)
+        background = displayio.Group(scale=16)
+        background.append(displayio.TileGrid(bg_bitmap, pixel_shader=bg_palette, x=0, y=0))
+
         root = displayio.Group()
+        root.append(background)
+        root.append(score_area)
+        root.append(score_label_area)
+        root.append(preview_label_area)
         root.append(bricks)
-        root.append(text_grid)
-        root[0] = displayio.Group()
-        root[0] = bricks
         self.lcd.show(root)
 
         brick = None
@@ -178,7 +206,7 @@ class TotrisApp(App):
         tick = time.monotonic()
         while True:
             if brick is None:
-                text.write(f"\r\n\r\n{score:04d}")
+                score_area.text = (f"{score:04d}")
                 next_brick.draw(preview, 0)
                 brick = next_brick
                 brick.x = screen.width // 2
@@ -224,6 +252,13 @@ class TotrisApp(App):
                     else:
                         combo += 1
                         score += combo
+
+                        for _ in range(2):
+                            NP.fill(palette[random.randint(1,5)])
+                            time.sleep(0.1)
+                            NP.fill(0x000000)
+                            time.sleep(0.1)
+
                         for yy in range(y, 0, -1):
                             for x in range(screen.width):
                                 screen[x, yy] = screen[x, yy - 1]
@@ -232,7 +267,7 @@ class TotrisApp(App):
                 brick.y += 1
                 brick.draw(screen)
 
-        root.append(game_over_grid)
+        root.append(game_over_area)
         if score > self._get_high_score():
             b = score.to_bytes(4, "big", signed=False)
             nvm[0:4] = b
