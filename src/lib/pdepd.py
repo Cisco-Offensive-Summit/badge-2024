@@ -959,7 +959,7 @@ class EPD(FrameBuffer):
         if x < 0 or y < 0: 
             raise IndexError("Coordinate position must be positive integers")
 
-        self.format.fill(self, 0)
+        #self.format.fill(self, 0)
         bmp, pal = adafruit_imageload.load(img_path, bitmap=Bitmap, palette=Palette)
 
         for yy in range(min(self.driver.get_height(), bmp.height)):
