@@ -15,6 +15,7 @@ from badge.log import info, log
 from badge.neopixels import set_neopixel, set_neopixels
 from badge.ziplist import ziplist
 from badge.launcher_ui import display_lcd_app_icon
+from badge.launcher_ui import draw_epd_launch_screen
 
 supervisor.runtime.autoreload = False
 
@@ -29,9 +30,10 @@ INDICATORS = [
     (1, 1, 1, 2)
 ]
 
-OFF, DIM, BRIGHT = (0, 0, 0), (0, 50, 30), (0, 106, 66)
+OFF, DIM, BRIGHT = (0, 0, 0), (0, 25, 25), (0, 106, 66)
 
 NEO_STATES = [OFF, DIM, BRIGHT]
+BOOT_CONFIG_START = len(microcontroller.nvm)//2
 
 
 def get_neo_update_vals(pattern):
@@ -68,7 +70,6 @@ def a_released(event):
     label = display_lcd_app_icon(app)
     while not ap() and not dp():
       label.update()
-    print(SELECTO.current()[0].app_name)
 
 @on(evt.BTN_C_PRESSED)
 def c_pressed(event):
@@ -97,7 +98,7 @@ def d_released(event):
 def nvm_store_config(new_boot_config):
     json_bytes = bytes(json.dumps(new_boot_config), "ascii")
     len_json = len(json_bytes)
-    microcontroller.nvm[0:len_json] = json_bytes
+    microcontroller.nvm[BOOT_CONFIG_START:BOOT_CONFIG_START + len_json] = json_bytes
     log(f"stored nvm config: {json_bytes}")
 
 
@@ -125,6 +126,7 @@ async def main():
     # all_tasks = [info_task, battery_task] + button_tasks + event_tasks
     all_tasks = [] + button_tasks + event_tasks
     label = display_lcd_app_icon(app)
+    draw_epd_launch_screen()
     while not ap() and not dp():
       label.update()
     await asyncio.gather(*all_tasks)
@@ -133,17 +135,17 @@ async def main():
 def clear_nvm():
     nvm = microcontroller.nvm
     nvm_len = len(microcontroller.nvm)
-    zeros = b"\x00" * nvm_len
+    zeros = b"\x00" * (nvm_len//2)
     # Check if clear is needed since nvm has a write lifetime
     if nvm[:] != zeros:
-        nvm[:] = zeros
+        nvm[BOOT_CONFIG_START:] = zeros
 
 
 def run():
     # Use a  stored next_code_file from nvm first
     next_code_file = None
     try:
-        cfg = json.loads(microcontroller.nvm[:])
+        cfg = json.loads(microcontroller.nvm[BOOT_CONFIG_START:])
         next_code_file = cfg.get("next_code_file", None)
     except Exception:
         pass

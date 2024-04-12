@@ -39,9 +39,9 @@ def set_neopixel(name: str, val):
     NP.show()
 
 
-def animate(pixel_obj):
-    blink = Blink(pixel_obj, 0.5, color.PURPLE)
-    for _ in range(100000):
+def animate(pixel_obj=NP):
+    blink = Blink(pixel_obj, 0.1, color.PURPLE)
+    for _ in range(5000):
         blink.animate()
     pixel_obj.fill((0, 0, 0))
     pixel_obj.show()
