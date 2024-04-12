@@ -8,3 +8,4 @@ tot = TotrisApp(badge.screens.LCD, badge.screens.EPD)
 tot.run()
 
 reset()
+
