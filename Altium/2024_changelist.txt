@@ -1,4 +1,4 @@
-The 2024 badge Schematic and Layout started from the 2023 badge; it uses the same technology (4 layer PCB5 mil minimum trace and space)
+The 2024 badge Schematic and Layout started from the 2023 badge; it uses the same technology (2 layer PCB5 mil minimum trace and space)
 
 The changelist, taken from the badge group meeting requests 8-23-2023:
 
