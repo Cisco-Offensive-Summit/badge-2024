@@ -1,9 +1,26 @@
-import storage, board, digitalio, microcontroller, os, supervisor
-from traceback import format_exception
+import board
+import digitalio
+import json
+import microcontroller
+import os
+import secrets
+import storage
+import supervisor                                                                                     
+import updater
 from time import sleep
-import updater, secrets
+from traceback import format_exception
 
-def loop_forever():
+# boot.py will process boot options from nvm
+# the process goes like this:
+#  1. an appdir containing boot.json will be launched by setting
+#     nvm from the boot.json, which triggers
+#     microcontroller.reset(), which re-runs boot.py using
+#     those nvm settings
+#  3. after this setup, the app will be launched via
+#     the normal soft boot.
+#  4. settings will return to normal at next run of launcher
+
+def loop_forever():                                                                                                                                   
     while True:
         sleep(1)
 
@@ -28,7 +45,7 @@ BTN4.pull = digitalio.Pull.UP
 # Hold BTN1 and BTN2 during reboot to update
 if not BTN1.value and not BTN2.value:
     storage.remount("/", readonly=False, disable_concurrent_write_protection=False)
-    
+                                                                                                                                                      
     ks = True
     if not BTN4.value:
         ks = False
@@ -51,10 +68,10 @@ if not BTN1.value and not BTN2.value:
                 else:
                     self.neopixels[i] = 0xFF0000 
         def error(self):
-            self.neopixels.fill(0x00FF00)
+            self.neopixels.fill(0x00FF00)                                                                                                             
         def complete(self):
             self.neopixels.fill(0xFF0000)
-    
+
     # Print funny lines to user to show it is working
     class PrintFlavortext(updater.UserPrint):
         def __init__(self):
@@ -83,7 +100,7 @@ if not BTN1.value and not BTN2.value:
                 tile_width=fontx,
                 tile_height=fonty,
                 pixel_shader=term_palette)
-            splash.append(logbox)
+            splash.append(logbox)                                                                                                                     
             self.logterm = terminalio.Terminal(logbox, terminalio.FONT)
             self.lcd.root_group = splash
             self.logterm.write("Update Starting!\r\n----------------\r\n")
@@ -94,14 +111,15 @@ if not BTN1.value and not BTN2.value:
             self.logterm.write("------------------\r\nUpdate successful!\r\n")
         def error(self):
             self.logterm.write("------------------\r\nUpdate failed! View updater_out.txt for more information.\r\n")
-    
+
+
     OTA = updater.Updater(secrets.WIFI_NETWORK, secrets.WIFI_PASS, secrets.GH_REPO, branch=secrets.GH_BRANCH, gh_token=secrets.GH_TOKEN, src_path=secrets.GH_SRC_FOLDER, debug=True, mpy2py=True, keep_secrets=ks)
 
     if not OTA.set_user_indicator_class(NeoPixelIndicator):
-        print('Could not instantiate user indicator class')
+        print('Could not instantiate user indicator class')                                                                                           
     if not OTA.set_user_print_class(PrintFlavortext):
         print('Could not instantiate user print class')
-    
+
     try:
         special_files = OTA.run()
         for tup in special_files:
@@ -111,17 +129,54 @@ if not BTN1.value and not BTN2.value:
             for line in format_exception(e):
                 f.write(line)
         loop_forever()
-    
+
     # So I can read that it worked
     sleep(3)
     microcontroller.reset()
 
-if not BTN4.value and not BTN3.value:
-  storage.remount("/", readonly=False, disable_concurrent_write_protection=False)
-  from get_token import get_token
-  success = get_token()
-  if success:
-    microcontroller.reset()
+default_config = {
+    "mount_root_rw": False,
+    "disable_usb_drive": False,
+    "next_code_file": None,
+}
 
-  else:
-    sleep(600)
+new_config = None
+try:
+    new_config = json.loads(microcontroller.nvm[:])
+except Exception as e:
+    print("nvram new_config json.loads exception:")
+    print(repr(e))
+    print()
+
+boot_config = default_config
+
+if new_config is not None:
+    boot_config.update(new_config)
+
+# mount_root_rw needs disable_usb_drive.
+if boot_config["mount_root_rw"]:
+    boot_config["disable_usb_drive"] = True
+
+# Check boot options and do corresponding thing
+if boot_config["disable_usb_drive"]:
+    try:
+        storage.disable_usb_drive()
+    except Exception as e:
+        print(repr(e))
+
+
+if boot_config["mount_root_rw"]:
+    try:
+        storage.remount("/", readonly=False)
+    except Exception as e:
+        print(repr(e))
+
+
+# next_code_file will be set by launcher,
+# then passed back after it hard boots with the updated
+# boot settings
+
+print(f"boot config:{repr(boot_config)}")
+
+# clear the nvram
+# microcontroller.nvm[:] = b"\x00" * len(microcontroller.nvm)

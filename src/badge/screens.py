@@ -63,6 +63,28 @@ def epd_wrap_message(message):
   return '\n'.join(new_msg)
 
 ###############################################################################
+
+def epd_round_button(text, x, y, rad):
+  t_height = EPD._font.font_height
+  t_width = EPD._font.width(text)
+  total_width = t_width + (rad * 2)
+  total_height = t_height + (rad * 2)
+  
+  EPD.circle(x,y,rad,1)
+  EPD.circle(x,y+t_height,rad,1)
+  EPD.circle(x+t_width,y,rad,1)
+  EPD.circle(x+t_width,y+t_height,rad,1)
+  EPD.rect(x,y-rad,t_width,total_height,0,fill=True)
+  EPD.rect(x-rad,y,total_width,t_height,0,fill=True)
+  EPD.vline(x-rad,y,t_height,1)
+  EPD.vline(x+t_width+rad,y,t_height,1)
+  EPD.hline(x,y-rad,t_width,1)
+  EPD.hline(x,y+t_height+rad,t_width,1)
+  EPD.text(text,x,y,1)
+  
+  
+
+###############################################################################
 if not (LCD and EPD):
   LCD, EPD = _init_screens()
 
