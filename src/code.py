@@ -3,6 +3,8 @@ import json
 import sys
 
 import badge.buttons
+from badge.buttons import a_pressed as ap
+from badge.buttons import d_pressed as dp
 import badge.events as evt
 import microcontroller
 import supervisor
@@ -12,22 +14,22 @@ from badge.events import on
 from badge.log import info, log
 from badge.neopixels import set_neopixel, set_neopixels
 from badge.ziplist import ziplist
-from badge.screens import LCD
+from badge.launcher_ui import display_lcd_app_icon
 
 supervisor.runtime.autoreload = False
 
 INDICATORS = [
     (1, 0, 0, 0),
-    (0, 1, 0, 0)
-#    (0, 0, 1, 0)
-#    (0, 0, 0, 1),
-#    (2, 1, 1, 1),
-#    (1, 2, 1, 1),
-#    (1, 1, 2, 1),
-#    (1, 1, 1, 2),
+    (0, 1, 0, 0),
+    (0, 0, 1, 0),
+    (0, 0, 0, 1),
+    (2, 1, 1, 1),
+    (1, 2, 1, 1),
+    (1, 1, 2, 1),
+    (1, 1, 1, 2)
 ]
 
-OFF, DIM, BRIGHT = (0, 0, 0), (22, 22, 0), (96, 96, 0)
+OFF, DIM, BRIGHT = (0, 0, 0), (0, 50, 30), (0, 106, 66)
 
 NEO_STATES = [OFF, DIM, BRIGHT]
 
@@ -60,10 +62,23 @@ def a_released(event):
     set_neopixel("a", 0)
     # advance to next app
     SELECTO.forward()
-    _, indicator = SELECTO.current()
+    app, indicator = SELECTO.current()
     vals = get_neo_update_vals(indicator)
     set_neopixels(*vals)
-    print(SELECTO.current())
+    label = display_lcd_app_icon(app)
+    while not ap() and not dp():
+      label.update()
+    print(SELECTO.current()[0].app_name)
+
+@on(evt.BTN_C_PRESSED)
+def c_pressed(event):
+    set_neopixel("c", 255)
+
+@on(evt.BTN_C_RELEASED)
+def c_released(event):
+    # turn it off
+    set_neopixel("c", 0)
+    sys.exit()
 
 @on(evt.BTN_D_PRESSED)
 def D_pressed(event):
@@ -103,12 +118,15 @@ def launch_app(entry):
 async def main():
     # log("main", APPLIST)
     #render_main(APPLIST)
-
+    app,_ = SELECTO.current()
     # info_task = asyncio.create_task(info())
     button_tasks = badge.buttons.start_tasks(interval=0.05)
     event_tasks = evt.start_tasks()
     # all_tasks = [info_task, battery_task] + button_tasks + event_tasks
     all_tasks = [] + button_tasks + event_tasks
+    label = display_lcd_app_icon(app)
+    while not ap() and not dp():
+      label.update()
     await asyncio.gather(*all_tasks)
 
 

@@ -8,6 +8,7 @@ from adafruit_led_animation.animation.rainbow import Rainbow
 from adafruit_led_animation.animation.rainbowchase import RainbowChase
 from adafruit_led_animation.animation.rainbowcomet import RainbowComet
 from adafruit_led_animation.helper import PixelSubset
+from badge.colors import OFF
 
 ORDER = RGB
 NP = NeoPixel(pin=board.NEOPIXEL, n=4, brightness=0.05, pixel_order=ORDER, auto_write=True)
@@ -18,7 +19,7 @@ NEO_C = PixelSubset(NP, 2, 3)
 NEO_D = PixelSubset(NP, 3, 4)
 
 
-def set_neopixels(a=None, b=None, c=None, d=None):
+def set_neopixels(a=OFF, b=OFF, c=OFF, d=OFF):
     global NP    
 
     NP[0] = a
@@ -62,3 +63,5 @@ def anim_rainbow_comet():
     rc = RainbowComet(NP, speed=0.1, bounce=True)
     while True:
         rc.animate()
+
+set_neopixels()

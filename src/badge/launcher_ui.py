@@ -2,21 +2,36 @@ import time
 
 import adafruit_imageload
 import board
+import displayio
 import terminalio
+from adafruit_bitmap_font.bitmap_font import load_font
 from adafruit_display_shapes.line import Line
 from adafruit_display_shapes.rect import Rect
 from adafruit_display_shapes.roundrect import RoundRect
 from adafruit_display_text.label import Label
+from adafruit_display_text.scrolling_label import ScrollingLabel
 from displayio import Group, TileGrid
 
+from badge.app import App
+from badge.buttons import any_button_downup
+from badge.colors import SITE_BLUE
 from badge.fileops import diskspace_str
+from badge.screens import EPD
+from badge.screens import LCD
+from badge.screens import clear_lcd_screen
+from badge.screens import clear_epd_screen
 
 # from .app import APPLIST
-from .colors import BLACK, DARKGRAY, LIGHTGRAY, WHITE
+from .colors import *
 from .log import log
 
-DISP_H = 128
-DISP_W = 296
+EPD_DISP_H = EPD.height
+EPD_DISP_W = EPD.width
+LCD_DISP_H = LCD.height
+LCD_DISP_W = LCD.width
+ICON_H = 76
+ICON_W = 128
+FONT = load_font('font/font.pcf')
 
 
 def refresh():
@@ -28,6 +43,36 @@ def refresh():
         except RuntimeError:
             time.sleep(board.DISPLAY.time_to_refresh + 0.1)
     return
+
+def display_lcd_app_icon(app: App):
+  icon = app.icon_file
+  app_name = app.app_name
+  meta = app.metadata_json
+  text = f"{meta['app_name']}   Created By: {meta['author']}          "
+
+  clear_lcd_screen(LCD.root_group)
+
+  group = Group()  
+  background = displayio.Bitmap(128, 128, 1)
+  palette1 = displayio.Palette(1)
+  palette1[0] = SITE_BLUE
+  bitmap, palette2 = adafruit_imageload.load(icon,bitmap=displayio.Bitmap,palette=displayio.Palette)
+  tile_grid1 = TileGrid(background, pixel_shader=palette1)
+  tile_grid2 = TileGrid(bitmap, pixel_shader=palette2)
+  label = ScrollingLabel(font=FONT, text=text, max_characters=13, animate_time=0.2)
+  print(LCD_DISP_H)
+  print(ICON_H)
+  y = LCD_DISP_H-((LCD_DISP_H-ICON_H)//2)
+  print(y)
+  label.x = 5
+  label.y = LCD_DISP_H-((LCD_DISP_H-ICON_H)//2)
+  LCD.root_group = group
+  group.append(tile_grid1)
+  group.append(tile_grid2)
+  group.append(label)
+
+  return label
+
 
 
 def render_main(app_entries):
@@ -45,10 +90,6 @@ def main_group(app_entries):
     main.append(indicators(3, 18))
     main.append(icon_pane(12, 18, app_entries))
     return main
-
-
-ICON_W = 68
-ICON_H = 42
 
 
 def indicators(x, y):
