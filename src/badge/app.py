@@ -27,6 +27,23 @@ class App:
         return icon_file
 
     @property
+    def metadata_file(self):
+        metadata_file_path = f"{self.appdir}/metadata.json"
+        if not is_file(metadata_file_path):
+            return None
+        return metadata_file_path
+
+    @property
+    def metadata_json(self):
+        metadata_file_path = self.metadata_file
+        if not metadata_file_path:
+            raise Exception("Metadata file not found")
+        with open(metadata_file_path) as f:
+            metadata = json.load(f)
+
+        return metadata
+
+    @property
     def boot_config(self):
         boot_json_file = f"{self.appdir}/boot.json"
         try:
@@ -34,6 +51,10 @@ class App:
         except Exception:
             # log(f"App.boot_config err\n{repr(e)}")
             return None
+
+    @property
+    def app_name(self):
+        return self.appdir.split('/')[::-1][0]
 
     def __repr__(self):
         s = f"App({self.code_file},icon={self.icon_file})"
