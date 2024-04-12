@@ -18,7 +18,7 @@ NP = NeoPixel(pin=board.NEOPIXEL, n=4, brightness=0.05, pixel_order=ORDER, auto_
 #NEO_D = PixelSubset(NP, 3, 4)
 
 
-def set_neopixels(a=None, b=None, c=None, d=None):
+def set_neopixels(a=OFF, b=OFF, c=OFF, d=OFF):
     global NP    
 
     NP[0] = a

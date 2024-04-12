@@ -1,0 +1,4 @@
+{
+    "disable_usb_drive": true,
+    "mount_root_rw": true
+}
