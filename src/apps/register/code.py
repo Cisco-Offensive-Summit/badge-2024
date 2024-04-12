@@ -2,6 +2,7 @@ import adafruit_requests as requests
 import alarm
 import board
 import displayio
+import microcontroller
 import neopixel
 import secrets
 import socketpool
@@ -123,4 +124,4 @@ EPD.draw()
 
 triggered_alarm = alarm.light_sleep_until_alarms(S4_pin_alarm)
 if triggered_alarm.pin == S4_pin_alarm.pin:
-  exit()
+  microcontroller.reset()
