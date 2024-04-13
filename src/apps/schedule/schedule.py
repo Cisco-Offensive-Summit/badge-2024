@@ -278,7 +278,7 @@ class EPDTalks:
         epd.fill(0)
         epd.fill_rect(0, 0, 200, 9, 1)
         epd.text("Up | Down  <Talks>  Select | Exit", 1, 1, 0)
-        epd.text("S4 - Up\nS3 - Down\nS2 - Select\nS1 - Exit", 1, 10, 1)
+        epd.text("S4 - Up\nS5 - Down\nS6 - Select/Back\nS7 - Exit", 1, 10, 1)
 
 class EPDDescription:
     def __init__(self):
