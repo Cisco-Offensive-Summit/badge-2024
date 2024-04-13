@@ -1,6 +1,7 @@
 import board
 import busio
 import displayio
+from traceback import format_exception
 try:
     from FourWire import fourwire
 except ImportError:
@@ -81,12 +82,14 @@ def epd_round_button(text, x, y, rad, color=1, scale=1):
   EPD.hline(x,y-rad,t_width,color)
   EPD.hline(x,y+t_height+rad,t_width,color)
   EPD.text(text,x,y,color,size=scale)
-  
-  
+
+###############################################################################
+
+def epd_print_exception(e:Exception):
+  fmt = epd_wrap_message(format_exception(e, limit=2)[0])
+  EPD.fill(0)
+  EPD.text(fmt, 2, 2, 1)
 
 ###############################################################################
 if not (LCD and EPD):
   LCD, EPD = _init_screens()
-
-
-
