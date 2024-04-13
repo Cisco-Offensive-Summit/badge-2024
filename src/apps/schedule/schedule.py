@@ -4,7 +4,6 @@ import adafruit_requests
 from microcontroller import nvm
 from adafruit_display_text import label, wrap_text_to_pixels
 from adafruit_display_text.scrolling_label import ScrollingLabel
-from traceback import format_exception
 from wifi import radio as wifiradio
 from ssl import create_default_context
 from socketpool import SocketPool
@@ -377,7 +376,7 @@ class ScheduleApp:
             return resp.json()
         elif sc == 404:
             raise EndpointNotReachable(f"Could not reach endpoint: {self.sched_endpoint}.")
-        elif sc <= 400 and sc < 500:
+        elif sc >= 400 and sc < 500:
             raise EndpointBadCredentials(f"Token rejected at endpoint: {self.sched_endpoint}. Make sure you have registered your badge!")
         else:
             raise EndpointUnknownResponse(f"Unknown response. Code {sc} reason {resp.reason}")
@@ -405,14 +404,12 @@ class ScheduleApp:
             schedule_json = self._get_schedule()
         except Exception as e:
             loading.set_error(f"{e}")
-            time.sleep(10)
             raise e
 
         try: 
             sorted_schedule = self._get_schedule_list(schedule_json)
         except Exception as e:
-            loading.set_error(f"{'\n'.join(format_exception(e))}")
-            time.sleep(10)
+            loading.set_error(f"{e}")
             raise e
 
         main_group.pop()
@@ -441,8 +438,6 @@ class ScheduleApp:
                 if event.key_number == 0:
                     for i in range(len(main_group)):
                         main_group.pop()
-                    self.epd.fill(0)
-                    self.epd.update()
                     return
 
                 # BTN2 Select
@@ -471,8 +466,6 @@ class ScheduleApp:
                             if subevent.key_number == 0:
                                 for i in range(len(main_group)):
                                     main_group.pop()
-                                self.epd.fill(0)
-                                self.epd.update()
                                 return
                             # BTN2 Back
                             elif subevent.key_number == 1:
