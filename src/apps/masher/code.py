@@ -14,7 +14,7 @@ from adafruit_led_animation.animation.rainbowchase import RainbowChase
 from adafruit_led_animation.animation.rainbowsparkle import RainbowSparkle
 from adafruit_led_animation.color import RED
 from badge.colors import BLACK, WHITE
-from badge.display import refresh
+from badge.screens import EPD, epd_round_button
 from badge.events import ANY_BTN_PRESSED, ANY_BTN_RELEASED
 from badge.log import log
 from badge.neopixels import NP as PIXELS
@@ -22,83 +22,43 @@ from badge.neopixels import neopixels_off, set_neopixel
 from displayio import Group
 
 
-def background(x, y):
-    g = Group(x=x, y=y)
-    g.append(Rect(0, 0, 296, 128, fill=WHITE, outline=WHITE))
-    return g
+def background():
+    EPD.fill(0)
 
 
-def button_row(x, y, a_txt=None, b_txt=None, c_txt=None, d_txt=None):
-    spacing = 12
-    width = 64
-    height = 20
-    g = Group(x=x, y=y)
-    for n, txt in enumerate([a_txt, b_txt, c_txt, d_txt]):
-        if txt is None:
-            continue
-        btn = text_button(n * (width + spacing) + 2, 0, width, height, txt)
-        g.append(btn)
-    return g
+def button_row():
+    radius = 5
+    epd_round_button("Quit", 5 + radius, EPD.height - 5 - radius - EPD._font.font_height, radius)
+    epd_round_button("Try again", EPD.width - 5 - radius - EPD._font.width("Try again"), EPD.height - 5 - radius - EPD._font.font_height, radius)
 
-
-def text_button(x, y, width, height, text):
-    b1 = Group(x=x, y=y)
-    b1.append(RoundRect(0, 0, width, height, 6, outline=BLACK, fill=WHITE))
-    t1 = Label(terminalio.FONT, text=text, color=BLACK)
-    t1.anchored_position = (width / 2, height / 2)  # center of Rectangle
-    t1.anchor_point = (0.5, 0.5)
-    b1.append(t1)
-    return b1
-
+def center_text(txt, y, scale=1):
+    EPD.text(txt, (EPD.width - (EPD._font.width(txt) * scale)) // 2, y, 1, size=scale)
 
 def welcome_screen():
-    text = """
-            Welcome to MASHER.
+    title1 = "Welcome to"
+    title2 = "MASHER."
+    subtitle1 = "Watch the lights, mash the button"
+    subtitle2 = "ASAP!"
+    subtitle3 = "Don't mash too soon :("
+    subtitle4 = "[ PRESS ANY BUTTON TO START ]"
 
-       Watch the lights, mash the button ASAP!
-
-           Don't mash too soon :(
-
-         [ PRESS ANY BUTTON TO START ]
-    """
-    main = Group()
-    text_area = label.Label(
-        terminalio.FONT, text=text, color=BLACK, background_color=WHITE
-    )
-    text_area.x = 0
-    text_area.y = 0
-    main.append(background(0, 0))
-    main.append(text_area)
-    board.DISPLAY.root_group = main
-    refresh()
-
-
-def text(text, scale=1, x=0, y=0):
-    text_area = label.Label(
-        terminalio.FONT, text=text, color=BLACK, background_color=WHITE, scale=scale
-    )
-    return text_area
-
+    background()
+    center_text(title1, 2, scale=2)
+    center_text(title2, 20, scale=2)
+    center_text(subtitle1, 40)
+    center_text(subtitle2, 50)
+    center_text(subtitle3, 60)
+    center_text(subtitle4, 85)
+    EPD.draw()
 
 def score_screen(elapsed):
-    main = Group()
-    main.append(background(0, 0))
-    t1 = Group(x=0, y=0)
-    t1_txt = text("Time:", scale=2)
-    t1_txt.anchored_position = (32, 16)
-    t1_txt.anchor_point = (0.0, 0.5)
-    t1.append(t1_txt)
-    main.append(t1)
-    t2 = Group(x=0, y=0)
-    t2_txt = text(f"{elapsed} ms", scale=5)
-    t2_txt.anchored_position = (296 // 2, 128 // 2)
-    t2_txt.anchor_point = (0.5, 0.5)
-    t2.append(t2_txt)
-    main.append(t2)
-    main.append(button_row(0, 107, "Quit", None, None, "Try Again"))
-    board.DISPLAY.root_group = main
+    background()
 
-    refresh()
+    EPD.text('Time:', 2, 2, 1, size=2)
+    center_text(f"{elapsed} ms", 25, scale=4)
+
+    button_row()
+    EPD.draw()
 
     rs = RainbowSparkle(
         PIXELS, speed=0.1, num_sparkles=1, step=32, precompute_rainbow=True
@@ -111,13 +71,12 @@ def score_screen(elapsed):
 
 
 def fail_screen(elapsed, answer_button, button_pressed):
-    main = Group()
-    main.append(background(0, 0))
-    t2 = Group(x=0, y=0)
+    background()
+    r = ""
     m = ""
     if not elapsed:
-        m = "Too soon.\n"
-        m += random.choice(
+        r = "Too soon"
+        m = random.choice(
             [
                 "You jumped the gun.",
                 "Hold your horses!",
@@ -128,8 +87,8 @@ def fail_screen(elapsed, answer_button, button_pressed):
             ]
         )
     elif answer_button != button_pressed:
-        m += "Wrong button.\n"
-        m += random.choice(
+        r = "Wrong button"
+        m = random.choice(
             [
                 "De-stress, look, press.",
                 "You're all thumbs.",
@@ -142,19 +101,16 @@ def fail_screen(elapsed, answer_button, button_pressed):
     else:
         "Failure.\nReason unknown."
 
-    t2_txt = text(m, scale=2)
-    t2_txt.anchored_position = (296 // 2, 48)
-    t2_txt.anchor_point = (0.5, 0.5)
-    t2.append(t2_txt)
-    main.append(t2)
-    main.append(button_row(0, 107, "Quit", None, None, "Try Again"))
-    board.DISPLAY.root_group = main
+    center_text(r, 4, scale=2)
+    center_text(m, 40)
+    button_row()
 
     a = Blink(PIXELS, speed=0.2, color=RED)
     for _ in range(10000):
         a.animate()
     neopixels_off()
-    refresh()
+
+    EPD.draw()
     return None
 
 
