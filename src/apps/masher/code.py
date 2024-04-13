@@ -5,20 +5,15 @@ import badge.buttons
 import board
 import supervisor
 import terminalio
-from adafruit_display_shapes.rect import Rect
-from adafruit_display_shapes.roundrect import RoundRect
-from adafruit_display_text import label
-from adafruit_display_text.label import Label
 from adafruit_led_animation.animation.blink import Blink
 from adafruit_led_animation.animation.rainbowchase import RainbowChase
 from adafruit_led_animation.animation.rainbowsparkle import RainbowSparkle
 from adafruit_led_animation.color import RED
-from badge.colors import BLACK, WHITE
 from badge.screens import EPD, epd_round_button
 from badge.events import ANY_BTN_PRESSED, ANY_BTN_RELEASED
 from badge.log import log
 from badge.neopixels import NP as PIXELS
-from badge.neopixels import neopixels_off, set_neopixel
+from badge.neopixels import neopixels_off, set_neopixel, neopixel_reinit
 from displayio import Group
 
 
@@ -111,8 +106,6 @@ def fail_screen(elapsed, answer_button, button_pressed):
     neopixels_off()
 
     EPD.draw()
-    return None
-
 
 RACE_START_TIME = None  # None or a ticks_ms() value.
 
@@ -132,6 +125,9 @@ async def xmas_tree(answer_button):
     global RACE_START_TIME
     RACE_START_TIME = False
     hit_the_lights()
+    # Hack to get neopixels to work correctly
+    global PIXELS
+    PIXELS = neopixel_reinit()
     print(f"xmas-tree:{answer_button}")
     wait_time = random.randrange(1200, 2750)
     await asyncio.sleep_ms(wait_time)  # random sleep between 1250 and 2250 ms
@@ -194,6 +190,7 @@ async def play():
 
 
 async def main():
+    neopixels_off()
     _ = badge.buttons.start_tasks(interval=0.001)
     welcome_screen()
     await ANY_BTN_RELEASED.wait()

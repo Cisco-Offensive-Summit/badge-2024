@@ -6,12 +6,7 @@ import time
 import board
 import supervisor
 import terminalio
-from adafruit_display_shapes.rect import Rect
-from adafruit_display_shapes.roundrect import RoundRect
-from adafruit_display_text import label
-from adafruit_display_text.label import Label
 from adafruit_led_animation.animation.rainbowsparkle import RainbowSparkle
-from displayio import Group
 
 import badge.buttons
 import badge.events as evt
