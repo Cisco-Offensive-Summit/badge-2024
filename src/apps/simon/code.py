@@ -17,12 +17,12 @@ import badge.buttons
 import badge.events as evt
 from badge.buttons import any_button_downup
 from badge.colors import BLACK, WHITE
-from badge.display import refresh
+from badge.screens import EPD, epd_round_button
 from badge.events import on
 from badge.log import dbg, info
 from badge.neopixels import neopixels_off, set_neopixel
 
-DEBUG = True
+DEBUG = False
 
 RED = (255,0,0)
 YELLOW = (255,255,0)
@@ -63,80 +63,36 @@ def on_d_pressed(e):
 def on_a_released(e):
     set_neopixel("d", 0)
 
-def background(x, y):
-    g = Group(x=x, y=y)
-    g.append(Rect(0, 0, 296, 128, fill=WHITE, outline=WHITE))
-    return g
+def background():
+    EPD.fill(0)
 
-def text(text, scale=1, x=0, y=0):
-    text_area = label.Label(
-        terminalio.FONT, text=text, color=BLACK, background_color=WHITE, scale=scale
-    )
-    return text_area
+def button_row():
+    radius = 5
+    epd_round_button("Quit", 5 + radius, EPD.height - 5 - radius - EPD._font.font_height, radius)
+    epd_round_button("Try again", EPD.width - 5 - radius - EPD._font.width("Try again"), EPD.height - 5 - radius - EPD._font.font_height, radius)
 
-
-def text_button(x, y, width, height, text):
-    b1 = Group(x=x, y=y)
-    b1.append(RoundRect(0, 0, width, height, 6, outline=BLACK, fill=WHITE))
-    t1 = Label(terminalio.FONT, text=text, color=BLACK)
-    t1.anchored_position = (width / 2, height / 2)  # center of Rectangle
-    t1.anchor_point = (0.5, 0.5)
-    b1.append(t1)
-    return b1
-
-def button_row(x, y, a_txt=None, b_txt=None, c_txt=None, d_txt=None):
-    spacing = 12
-    width = 64
-    height = 20
-    g = Group(x=x, y=y)
-    for n, txt in enumerate([a_txt, b_txt, c_txt, d_txt]):
-        if txt is None:
-            continue
-        btn = text_button(n * (width + spacing) + 2, 0, width, height, txt)
-        g.append(btn)
-    return g
-
+def center_text(txt, y, scale=1):
+    EPD.text(txt, (EPD.width - (EPD._font.width(txt) * scale)) // 2, y, 1, size=scale)
 
 def welcome_screen():
-    text = """
-            It's not Simon!
+    title = "It's not Simon!"
+    subtitle1 = "Watch the pattern, remember it."
+    subtitle2 = "Repeat it!"
+    subtitle3 = "[ PRESS ANY BUTTON TO START ]"
 
-       Watch the pattern, remember it. 
-                Repeat it!
-
-         [ PRESS ANY BUTTON TO START ]
-    """
-    main = Group()
-    text_area = label.Label(
-        terminalio.FONT, text=text, color=BLACK, background_color=WHITE
-    )
-    text_area.x = 0
-    text_area.y = 0
-    main.append(background(0, 0))
-    main.append(text_area)
-    board.DISPLAY.root_group = main
-    refresh()
-
+    background()
+    center_text(title, 2, scale=2)
+    center_text(subtitle1, 40)
+    center_text(subtitle2, 50)
+    center_text(subtitle3, 85)
+    EPD.draw()
 
 def score_screen(score):
-    main = Group()
-    main.append(background(0, 0))
-    t1 = Group(x=0, y=0)
-    t1_txt = text("Score:", scale=2)
-    t1_txt.anchored_position = (32, 16)
-    t1_txt.anchor_point = (0.0, 0.5)
-    t1.append(t1_txt)
-    main.append(t1)
-    t2 = Group(x=0, y=0)
-    t2_txt = text(f"{score}", scale=5)
-    t2_txt.anchored_position = (296 // 2, 128 // 2)
-    t2_txt.anchor_point = (0.5, 0.5)
-    t2.append(t2_txt)
-    main.append(t2)
-    main.append(button_row(0, 107, "Quit", None, None, "Try Again"))
-    board.DISPLAY.root_group = main
-
-    refresh()
+    background()
+    EPD.text('Score:', 2, 2, 1, size=2)
+    center_text(f"{score}", 25, scale=4)
+    button_row()
+    EPD.draw()
 
     # rs = RainbowSparkle(
     #     PIXELS, speed=0.1, num_sparkles=1, step=32, precompute_rainbow=True
