@@ -10,15 +10,8 @@ import badge.events as evt
 from badge.events import on
 
 from badge.neopixels import set_neopixel, set_neopixels
-from displayio import Group
-from adafruit_display_text import label
-from adafruit_display_text.label import Label
-from adafruit_display_shapes.rect import Rect
-from adafruit_display_shapes.roundrect import RoundRect
-from badge.colors import BLACK, WHITE
 import badge.screens
 from badge.screens import EPD
-import terminalio
 
 Curcolor = 0
 Pattern = [0]
