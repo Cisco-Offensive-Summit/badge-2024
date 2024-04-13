@@ -137,7 +137,7 @@ def clear_nvm():
     nvm_len = len(microcontroller.nvm)
     zeros = b"\x00" * (nvm_len//2)
     # Check if clear is needed since nvm has a write lifetime
-    if nvm[:] != zeros:
+    if nvm[BOOT_CONFIG_START:] != zeros:
         nvm[BOOT_CONFIG_START:] = zeros
 
 

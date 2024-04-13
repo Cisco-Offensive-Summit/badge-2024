@@ -141,8 +141,9 @@ default_config = {
 }
 
 new_config = None
+BOOT_CONFIG_START = len(microcontroller.nvm) // 2
 try:
-    new_config = json.loads(microcontroller.nvm[:])
+    new_config = json.loads(microcontroller.nvm[BOOT_CONFIG_START:])
 except Exception as e:
     print("nvram new_config json.loads exception:")
     print(repr(e))
