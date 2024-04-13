@@ -1,4 +1,3 @@
-
 import asyncio
 import os
 import sys
@@ -9,7 +8,6 @@ import supervisor
 import badge.buttons
 import badge.events as evt
 from badge.events import on
-import badge.display
 
 from badge.neopixels import set_neopixel, set_neopixels
 from displayio import Group
@@ -18,11 +16,9 @@ from adafruit_display_text.label import Label
 from adafruit_display_shapes.rect import Rect
 from adafruit_display_shapes.roundrect import RoundRect
 from badge.colors import BLACK, WHITE
-from badge.display import refresh
+import badge.screens
+from badge.screens import EPD
 import terminalio
-
-badge.display.set_background()
-
 
 Curcolor = 0
 Pattern = [0]
@@ -89,53 +85,25 @@ def run():
     asyncio.run(main())
 
 def text(text, scale=1, x=0, y=0):
-    text_area = label.Label(
-        terminalio.FONT, text=text, color=BLACK, background_color=WHITE, scale=scale
-    )
-    return text_area
+    EPD.text(text, x, y, 1, size=scale)
 
-def background(x, y):
-    g = Group(x=x, y=y)
-    g.append(Rect(0, 0, 296, 128, fill=WHITE, outline=WHITE))
-    return g
+def background():
+    EPD.fill(0)
 
 
 def button_row(x, y, a_txt=None, b_txt=None, c_txt=None, d_txt=None):
-    spacing = 12
-    width = 64
-    height = 20
-    g = Group(x=x, y=y)
+    spacing = 17
+    radius = 5
     for n, txt in enumerate([a_txt, b_txt, c_txt, d_txt]):
         if txt is None:
             continue
-        btn = text_button(n * (width + spacing) + 2, 0, width, height, txt)
-        g.append(btn)
-    return g
-
-
-def text_button(x, y, width, height, text):
-    b1 = Group(x=x, y=y)
-    b1.append(RoundRect(0, 0, width, height, 6, outline=BLACK, fill=WHITE))
-    t1 = Label(terminalio.FONT, text=text, color=BLACK)
-    t1.anchored_position = (width / 2, height / 2)  # center of Rectangle
-    t1.anchor_point = (0.5, 0.5)
-    b1.append(t1)
-    return b1
+        badge.screens.epd_round_button(txt, 7 + n * (EPD._font.width(txt) + radius + spacing), EPD.height - 5 - radius - EPD._font.font_height, radius)
 
 def usage():
-    main = Group()
-    main.append(background(0, 0))
-    t1 = Group(x=0, y=0)
-    t1_txt = text("""Push buttons to make 
-  blinking pattern""", scale=2)
-    t1_txt.anchored_position = (32, 32)
-    t1_txt.anchor_point = (0.0, 0.5)
-    t1.append(t1_txt)
-    main.append(t1)
-    main.append(button_row(0, 107, "Red", "Green", "Blue", "Blank"))
-    board.DISPLAY.root_group = main
-
-    refresh()
+    background()
+    text(" Push buttons to\n  make blinking\n     pattern", 2, 0, 4)
+    button_row(0, 107, "S4: R", "S5: G", "S6: B", "S7: N")
+    EPD.draw()
 
 async def main():
     button_tasks = badge.buttons.start_tasks(interval=0.05)
