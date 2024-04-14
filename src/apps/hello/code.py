@@ -31,6 +31,7 @@ splash = None
 ###############################################################################
 SSID = secrets.WIFI_NETWORK
 WIFI_PASSWORD = secrets.WIFI_PASS
+session = None
 ###############################################################################
 HOST = secrets.HOST_ADDRESS
 HELLO_API = 'badge/hello'
@@ -80,6 +81,7 @@ def connect_screen_splash():
 
 def request_data(hello_json):
   global splash
+  global session
 
   clear_lcd_screen(splash)
   NP[0] = GREEN
@@ -93,9 +95,10 @@ def request_data(hello_json):
   splash.append(L2)
   sleep(0.5)
 
-  # Creating a socket pool and using that to create a session                                                                                           
+  # Creating a socket pool and using that to create a session                                                                                         
   pool = socketpool.SocketPool(wifi.radio)
-  session = requests.Session(pool, ssl.create_default_context())
+  if not session:
+    session = requests.Session(pool, ssl.create_default_context())
   NP[2] = GREEN
   NP.show()
   splash.append(L3)
