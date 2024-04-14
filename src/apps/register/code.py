@@ -10,8 +10,8 @@ import ssl
 import supervisor
 import terminalio
 import wifi
+from adafruit_display_text import wrap_text_to_lines
 from adafruit_display_text.label import Label
-from sys import exit
 from time import sleep
 from badge.colors import *
 from badge.neopixels import NP
@@ -91,14 +91,22 @@ if rsp.status_code == 200:
 else:
   status_code = rsp.status_code
   message = rsp.json()['message']
-  print(f'Error {status_code}: {message}')
+  err = f'Error {status_code}: {message}'
+  wrapped_err = "\n".join(wrap_text_to_lines(err, 19))
+  err_label = Label(FONT, text=wrapped_err)
+  err_label.x = 5
+  err_label.y = 5
+  clear_lcd_screen(splash)
+  splash.append(err_label)
+  print(err)
   for i in range(3):
     NP.fill(RED)
     sleep(0.25)
     NP.fill(OFF)
     sleep(0.25)
 
-  exit()
+  sleep(5)
+  microcontroller.reset()
 
 rsp.close()
 
