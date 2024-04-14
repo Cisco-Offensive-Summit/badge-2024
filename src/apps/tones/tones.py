@@ -5,58 +5,6 @@ from microcontroller import nvm
 
 from badge.neopixels import NP
 
-class Brick:
-    BRICKS = b'ftqr\xf0'
-    ROTATIONS = [
-        (1, 0, 0, 1, -1, -1),
-        (0, 1, -1, 0, -1, 0),
-        (-1, 0, 0, -1, -2, 0),
-        (0, -1, 1, 0, -2, -1),
-    ]
-
-    def __init__(self, kind):
-        self.x = 1
-        self.y = 2
-        self.color = kind % 5 + 1
-        self.rotation = 0
-        self.kind = kind
-
-    def draw(self, image, color=None):
-        if color is None:
-            color = self.color
-        data = self.BRICKS[self.kind]
-        rot = self.ROTATIONS[self.rotation]
-        mask = 0x01
-        for y in range(2):
-            y += rot[5]
-            for x in range(4):
-                x += rot[4]
-                if data & mask:
-                    try:
-                        image[self.x + x * rot[0] + y * rot[1],
-                              self.y + x * rot[2] + y * rot[3]] = color
-                    except IndexError:
-                        pass
-                mask <<= 1
-
-    def hit(self, image, dx=0, dy=0, dr=0):
-        data = self.BRICKS[self.kind]
-        rot = self.ROTATIONS[(self.rotation + dr) % 4]
-        mask = 0x01
-        for y in range(2):
-            y += rot[5]
-            for x in range(4):
-                x += rot[4]
-                if data & mask:
-                    try:
-                        if image[self.x + dx + x * rot[0] + y * rot[1],
-                                 self.y + dy + x * rot[2] + y * rot[3]]:
-                            return True
-                    except IndexError:
-                        return True
-                mask <<= 1
-        return False
-
 class TonesApp:
     def __init__(self, lcd: ST7735R, epd: EPD):
         self.lcd = lcd
@@ -76,50 +24,51 @@ class TonesApp:
         pass
 
     def run(self):
-        hs = self._get_high_score()
-        wave = "sine"
-        note = "A4"
-        freq = 440
 
         self.epd.image("img/tones.bmp")
-        self.epd.text("Wave Type", 5, 78, 1)
-        self.epd.text(f"{wave}", 14, 87, 1)
-        self.epd.text("Note (Hz)", 143, 78, 1)
-        self.epd.text(f"{note} ({freq:03})", 148, 87, 1)
+        self.epd.text("Waveform", 5, 78, 1)
+        self.epd.text("S4", 14, 87, 1)
+        self.epd.text("Up", 80, 78, 1)
+        self.epd.text("S5", 80, 87, 1)
+        self.epd.text("Down", 120, 78, 1)
+        self.epd.text("S6", 124, 87, 1)
+        self.epd.text("Play", 173, 78, 1)
+        self.epd.text("S7", 178, 87, 1)
         self.epd.draw()
 
-        while self._start_screen():
-            self._start_game()
-            if self._get_high_score() > hs:
-#                self.epd.text(f"{hs:04}", 88, 87, 0)
-                hs = self._get_high_score()
-#                self.epd.text(f"{hs:04}", 88, 87, 1)
-                self.epd.update()
+        while self._init_screen():
+            self._play_tones()
 
-    def _get_high_score(self):
-        b = nvm[0:4]
-        return int.from_bytes(b, "big", signed=False)
+    def _init_screen(self):
 
-    def _start_screen(self):
+        cont_label = label.Label(terminalio.FONT, text="Press S7 to continue")
+        cont_label.anchor_point = (0.5, 0.5)
+        cont_label.anchored_position = (64, 16)
 
-        start_label = label.Label(terminalio.FONT, text="Press S7 to continue")
-        start_label.anchor_point = (0.5, 0.5)
-        start_label.anchored_position = (64, 16)
+        dac_label = label.Label(terminalio.FONT, text="Press S6 to toggle\n  DAC output:")
+        dac_label.anchor_point = (0.5, 0.5)
+        dac_label.anchored_position = (64, 56)
 
-        warning_label = label.Label(terminalio.FONT, text="Make sure a DAC\n  is plugged in!")
-        warning_label.color = 0xFFFF00
-#        lights_label = label.Label(terminalio.FONT, text="Press S6 to disable\n  flashing lights")
-        warning_label.anchor_point = (0.5, 0.5)
-        warning_label.anchored_position = (64, 56)
+        if NP.brightness == 0:
+            lt = "DAC output is OFF"
+            lc = 0xFFFF00
+        else:
+            lt = "DAC output is ON"
+            lc = 0x00FF00
 
+        dac_status = label.Label(terminalio.FONT, text=lt)
+        dac_status.anchor_point = (0.5, 0.5)
+        dac_status.anchored_position = (64, 75)
+        dac_status.color = lc
 
         exit_label = label.Label(terminalio.FONT, text="Press S4 to exit")
         exit_label.anchor_point = (0.5, 0.5)
         exit_label.anchored_position = (64, 112)
 
         root = displayio.Group()
-        root.append(start_label)
-        root.append(warning_label)
+        root.append(cont_label)
+        root.append(dac_label)
+        root.append(dac_status)
         root.append(exit_label)
         self.lcd.show(root)
 
@@ -132,19 +81,33 @@ class TonesApp:
                 if event.key_number == 1:
                     if NP.brightness == 0:
                         NP.brightness = 0.1
-#                        light_indicator.color = 0x00FF00
-#                        light_indicator.text = "Lights are ON"
+                        dac_status.color = 0x00FF00
+                        dac_status.text = "DAC output is ON"
                     else:
                         NP.brightness = 0
-#                        light_indicator.color = 0xFFFF00
-#                        light_indicator.text = "Lights are OFF"
+                        dac_status.color = 0xFFFF00
+                        dac_status.text = "DAC output is OFF"
 
                 if event.key_number == 3:
                     return False
                 else:
                     pass
 
-    def _start_game(self):
+    def _play_tones(self):
+        TONES       = ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"]
+        FREQUENCIES = [262, 294, 330, 349, 392, 440, 494, 523]
+        WAVEFORMS   = ["sine", "square", "triangle", "saw", "supersaw"]
+        MINTONE     = 0
+        MAXTONE     = 7
+        TONE        = 5
+        MINFREQ     = 0
+        MAXFREQ     = 7
+        FREQ        = 5
+        MINWAVE     = 0
+        MAXWAVE     = 4
+        WAVE        = 0
+
+
         palette = displayio.Palette(6)
         palette[0] = 0x000000
         palette[1] = 0xaa0099
@@ -157,26 +120,16 @@ class TonesApp:
         bg_palette[1] = 0x000000
 
 
-        score_label_area = label.Label(terminalio.FONT, text ='Score:')
-        score_label_area.anchor_point = (0.5,0.5)
-        score_label_area.anchored_position = (105, 75)
-        score_label_area.color = 0x000000
+        waveform_area = label.Label(terminalio.FONT, text ='Waveform: ')
+        waveform_area.anchor_point = (0.5,0.5)
+        waveform_area.anchored_position = (1, 1)
+        waveform_area.color = 0x000000
 
-        score_area = label.Label(terminalio.FONT, text='0000')
-        score_area.anchor_point = (0.5,0.5)
-        score_area.anchored_position = (105, 90)
-        score_area.color = 0x000000
-
-        game_over_area = label.Label(terminalio.FONT, text='    GAME OVER     ')
-        game_over_area.anchor_point = (0.5, 0.5)
-        game_over_area.anchored_position = (64, 64)
-        game_over_area.color = 0xc70000
-        game_over_area.background_color = 0x000000
-
-        preview_label_area = label.Label(terminalio.FONT, text='Next')
-        preview_label_area.anchor_point = (0.5, 0.5)
-        preview_label_area.anchored_position = (105, 9)
-        preview_label_area.color = 0x000000
+        note_area = label.Label(terminalio.FONT, text='Note (Frequency): ')
+        note_area.anchor_point = (0.5, 0.5)
+        note_area.anchored_position = (1, 145)
+        note_area.color = 0xc70000
+        note_area.background_color = 0x000000
 
         screen = displayio.Bitmap(10, 20, 6)
         preview = displayio.Bitmap(4, 4, 6)
@@ -189,82 +142,77 @@ class TonesApp:
 
         root = displayio.Group()
         root.append(background)
-        root.append(score_area)
-        root.append(score_label_area)
-        root.append(preview_label_area)
-        root.append(bricks)
+        root.append(waveform_area)
+        root.append(note_area)
         self.lcd.show(root)
 
-        brick = None
-        score = 0
-        next_brick = Brick(random.randint(0, 4))
-        tick = time.monotonic()
-        while True:
-            if brick is None:
-                score_area.text = (f"{score:04d}")
-                next_brick.draw(preview, 0)
-                brick = next_brick
-                brick.x = screen.width // 2
-                next_brick = Brick(random.randint(0, 4))
-                next_brick.draw(preview)
-                if brick.hit(screen, 0, 0):
-                    break
-            tick += 0.5
-            pressed = 0
-            event = keypad.Event()
-            while True:
-                self.lcd.refresh()
-                time.sleep(0.075)
-                if tick <= time.monotonic():
-                    break
-                brick.draw(screen, 0)
-                while self.buttons.events:
-                    self.buttons.events.get_into(event)
-                    if event.pressed:
-                        pressed |= 1 << event.key_number
-                    else:
-                        pressed &= ~(1 << event.key_number)
-                if pressed & 0x08 and not brick.hit(screen, -1, 0):
-                    brick.x -= 1
-                if pressed & 0x04 and not brick.hit(screen, 1, 0):
-                    brick.x += 1
-                if pressed & 0x02 and not brick.hit(screen, 0, 1):
-                    brick.y += 1
-                if pressed & 0x01 and not brick.hit(screen, 0, 0, 1) and not debounce:
-                    brick.rotation = (brick.rotation + 1) % 4
-                    debounce = True
-                if not pressed:
-                    debounce = False
-                brick.draw(screen)
-            brick.draw(screen, 0)
-            if brick.hit(screen, 0, 1):
-                brick.draw(screen)
-                combo = 0
-                for y in range(screen.height):
-                    for x in range(screen.width):
-                        if not screen[x, y]:
-                            break
-                    else:
-                        combo += 1
-                        score += combo
+        # brick = None
+        # score = 0
+        # next_brick = Brick(random.randint(0, 4))
+        # tick = time.monotonic()
+        # while True:
+        #     if brick is None:
+        #         score_area.text = (f"{score:04d}")
+        #         next_brick.draw(preview, 0)
+        #         brick = next_brick
+        #         brick.x = screen.width // 2
+        #         next_brick = Brick(random.randint(0, 4))
+        #         next_brick.draw(preview)
+        #         if brick.hit(screen, 0, 0):
+        #             break
+        #     tick += 0.5
+        #     pressed = 0
+        #     event = keypad.Event()
+        #     while True:
+        #         self.lcd.refresh()
+        #         time.sleep(0.075)
+        #         if tick <= time.monotonic():
+        #             break
+        #         brick.draw(screen, 0)
+        #         while self.buttons.events:
+        #             self.buttons.events.get_into(event)
+        #             if event.pressed:
+        #                 pressed |= 1 << event.key_number
+        #             else:
+        #                 pressed &= ~(1 << event.key_number)
+        #         if pressed & 0x08 and not brick.hit(screen, -1, 0):
+        #             brick.x -= 1
+        #         if pressed & 0x04 and not brick.hit(screen, 1, 0):
+        #             brick.x += 1
+        #         if pressed & 0x02 and not brick.hit(screen, 0, 1):
+        #             brick.y += 1
+        #         if pressed & 0x01 and not brick.hit(screen, 0, 0, 1) and not debounce:
+        #             brick.rotation = (brick.rotation + 1) % 4
+        #             debounce = True
+        #         if not pressed:
+        #             debounce = False
+        #         brick.draw(screen)
+        #     brick.draw(screen, 0)
+        #     if brick.hit(screen, 0, 1):
+        #         brick.draw(screen)
+        #         combo = 0
+        #         for y in range(screen.height):
+        #             for x in range(screen.width):
+        #                 if not screen[x, y]:
+        #                     break
+        #             else:
+        #                 combo += 1
+        #                 score += combo
 
-                        for _ in range(2):
-                            NP.fill(palette[random.randint(1,5)])
-                            time.sleep(0.1)
-                            NP.fill(0x000000)
-                            time.sleep(0.1)
+        #                 for _ in range(2):
+        #                     NP.fill(palette[random.randint(1,5)])
+        #                     time.sleep(0.1)
+        #                     NP.fill(0x000000)
+        #                     time.sleep(0.1)
 
-                        for yy in range(y, 0, -1):
-                            for x in range(screen.width):
-                                screen[x, yy] = screen[x, yy - 1]
-                brick = None
-            else:
-                brick.y += 1
-                brick.draw(screen)
+        #                 for yy in range(y, 0, -1):
+        #                     for x in range(screen.width):
+        #                         screen[x, yy] = screen[x, yy - 1]
+        #         brick = None
+        #     else:
+        #         brick.y += 1
+        #         brick.draw(screen)
 
-        root.append(game_over_area)
-        if score > self._get_high_score():
-            b = score.to_bytes(4, "big", signed=False)
-            nvm[0:4] = b
+        # root.append(game_over_area)
 
         time.sleep(4)
