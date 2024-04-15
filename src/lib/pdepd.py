@@ -954,7 +954,7 @@ class EPD(FrameBuffer):
     def image(self, img_path: str, x:int=0, y:int=0) -> None:
         """Draw an bitmap image, must be 1 bit color"""
         import adafruit_imageload
-        from displayio import Bitmap, Palette
+        from displayio import Bitmap, Palette, ColorConverter
 
         if x < 0 or y < 0: 
             raise IndexError("Coordinate position must be positive integers")
@@ -964,8 +964,13 @@ class EPD(FrameBuffer):
 
         for yy in range(min(self.driver.get_height(), bmp.height)):
             for xx in range(min(self.driver.get_width(), bmp.width)):
+                white = True
+                if type(pal) == ColorConverter:
+                    white = pal.convert(bmp[xx,yy]) == 65535
+                else:
+                    white = pal[bmp[xx,yy]] == 0xFFFFFF
                 # if pixel val is not pure white
-                if pal[bmp[xx,yy]] != 0xFFFFFF:
+                if not white:
                     if yy+y < self.driver.get_height() and xx+x < self.driver.get_width():
                         self.format.set_pixel(self, xx+x, yy+y, 1)
 
