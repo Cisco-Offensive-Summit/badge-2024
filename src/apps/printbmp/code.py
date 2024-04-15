@@ -52,8 +52,9 @@ def get_img_list():
 def epd_welcome():
     EPD.fill(0)
     epd_center_text("PrintBMP", 2, scale=3)
-    epd_center_text("Select an bmp from the '/img'", 40)
-    epd_center_text("directory to display.", 50)
+    epd_center_text("Select an bmp from the '/img'", 30)
+    epd_center_text("directory to display.", 40)
+    epd_center_text("bmp dimensions: 200x96x1", 55)
 
     radius = 5
     epd_round_button("Up", 5 + radius, EPD.height - 5 - radius - EPD._font.font_height, radius)
