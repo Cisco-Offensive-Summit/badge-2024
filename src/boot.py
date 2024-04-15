@@ -7,6 +7,7 @@ import secrets
 import storage
 import supervisor                                                                                     
 import updater
+from badge.screens import EPD
 from time import sleep
 from traceback import format_exception
 
@@ -133,6 +134,22 @@ if not BTN1.value and not BTN2.value:
     # So I can read that it worked
     sleep(3)
     microcontroller.reset()
+
+if not BTN4.value and not BTN3.value:
+  storage.remount("/", readonly=False, disable_concurrent_write_protection=False)
+  from get_token import get_token
+  success = get_token()
+  if success:
+    tag_height = EPD._font.font_height * 5
+    tag_width = EPD._font.width("nobody") * 5
+    EPD.fill(0)
+    EPD.text("nobody", (EPD.width - tag_width) // 2, (EPD.height - tag_height) // 2, color=1, size=5)
+    EPD.draw()
+    while True:
+      pass
+
+  else:
+    sleep(600)
 
 default_config = {
     "mount_root_rw": False,
