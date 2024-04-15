@@ -11,7 +11,7 @@ from badge.events import on
 
 from badge.neopixels import set_neopixel, set_neopixels
 import badge.screens
-from badge.screens import EPD
+from badge.screens import EPD, epd_print_exception
 
 Curcolor = 0
 Pattern = [0]
@@ -119,4 +119,7 @@ async def main():
         i = (i + 1) % patlen
     await asyncio.gather(*all_tasks)
 
-run()
+try:
+    run()
+except Exception as e:
+    epd_print_exception(e)

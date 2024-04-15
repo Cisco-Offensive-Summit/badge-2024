@@ -12,7 +12,7 @@ import badge.buttons
 import badge.events as evt
 from badge.buttons import any_button_downup
 from badge.colors import BLACK, WHITE
-from badge.screens import EPD, epd_round_button
+from badge.screens import EPD, epd_round_button, epd_center_text, epd_print_exception
 from badge.events import on
 from badge.log import dbg, info
 from badge.neopixels import neopixels_off, set_neopixel
@@ -66,9 +66,6 @@ def button_row():
     epd_round_button("Quit", 5 + radius, EPD.height - 5 - radius - EPD._font.font_height, radius)
     epd_round_button("Try again", EPD.width - 5 - radius - EPD._font.width("Try again"), EPD.height - 5 - radius - EPD._font.font_height, radius)
 
-def center_text(txt, y, scale=1):
-    EPD.text(txt, (EPD.width - (EPD._font.width(txt) * scale)) // 2, y, 1, size=scale)
-
 def welcome_screen():
     title = "It's not Simon!"
     subtitle1 = "Watch the pattern, remember it."
@@ -76,16 +73,16 @@ def welcome_screen():
     subtitle3 = "[ PRESS ANY BUTTON TO START ]"
 
     background()
-    center_text(title, 2, scale=2)
-    center_text(subtitle1, 40)
-    center_text(subtitle2, 50)
-    center_text(subtitle3, 85)
+    epd_center_text(title, 2, scale=2)
+    epd_center_text(subtitle1, 40)
+    epd_center_text(subtitle2, 50)
+    epd_center_text(subtitle3, 85)
     EPD.draw()
 
 def score_screen(score):
     background()
     EPD.text('Score:', 2, 2, 1, size=2)
-    center_text(f"{score}", 25, scale=4)
+    epd_center_text(f"{score}", 25, scale=4)
     button_row()
     EPD.draw()
 
@@ -184,4 +181,7 @@ def run():
 
 if __name__ == "__main__":
     DEBUG and dbg(f"{__file__}", "__name__ == '__main__'")
-    run()
+    try:
+        run()
+    except Exception as e:
+        epd_print_exception(e)
