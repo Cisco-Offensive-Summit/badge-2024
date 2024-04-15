@@ -3,6 +3,9 @@ import displayio, digitalio, terminalio
 from adafruit_display_text import label
 from cedargrove_wavebuilder import WaveBuilder, WaveShape
 from cedargrove_waveviz import WaveViz
+# for DAC to function
+import audiocore, busio # DAC
+import adafruit_ad569x
 
 class TonesApp:
     def __init__(self, lcd: ST7735R, epd: EPD):
@@ -185,6 +188,15 @@ class TonesApp:
         self.lcd.show(root)
 
         while True:
+            # set up DAC if enabled
+            if (self.dac_state == 1):
+                try:
+                    i2c = board.I2C()
+                    dac = adafruit_ad569x.Adafruit_AD569x(i2c)
+                except:
+                    self.dac_state = 0
+                    print("turning DAC off")
+                    
             event = self.buttons.events.get()
             if event and event.pressed:
                 if event.key_number == 0:
@@ -211,6 +223,12 @@ class TonesApp:
                                         back_color=bg_palette[1], auto_scale=False)
                         waveform.append(graph)
                         
+                        if (self.dac_state == 1):
+                            ### play note
+                            pass
+                        else:
+                            pass
+                        
                     if WAVE == 1:               # square wave
                         tone = [
                             (WaveShape.Square, 1.00, (0.82 + offset)),
@@ -229,6 +247,13 @@ class TonesApp:
                                         width=128, height=101, plot_color=palette[2], 
                                         back_color=bg_palette[1], auto_scale=False)
                         waveform.append(graph)
+                        
+                        if (self.dac_state == 1):
+                            ### play note
+                            pass
+                        else:
+                            pass
+                        
 
                     if WAVE == 2:               # triangle wave
                         tone = [
@@ -248,6 +273,13 @@ class TonesApp:
                                         width=128, height=101, plot_color=palette[2], 
                                         back_color=bg_palette[1], auto_scale=False)
                         waveform.append(graph)
+                        
+                        if (self.dac_state == 1):
+                            ### play note
+                            pass
+                        else:
+                            pass
+                        
 
                     if WAVE == 3:               # saw wave
                         tone = [
@@ -267,6 +299,13 @@ class TonesApp:
                                         width=128, height=101, plot_color=palette[2], 
                                         back_color=bg_palette[1], auto_scale=False)
                         waveform.append(graph)
+                        
+                        if (self.dac_state == 1):
+                            ### play note
+                            pass
+                        else:
+                            pass
+                        
 
                     if WAVE == 4:               # supersaw wave
                         tone = [
@@ -288,6 +327,13 @@ class TonesApp:
                                         width=128, height=101, plot_color=palette[2], 
                                         back_color=bg_palette[1])
                         waveform.append(graph)
+                        
+                        if (self.dac_state == 1):
+                            ### play note
+                            pass
+                        else:
+                            pass
+                        
 
                 if event.key_number == 1:
                     if (TONE > MINTONE):
