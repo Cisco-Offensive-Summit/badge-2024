@@ -9,7 +9,7 @@ from adafruit_led_animation.animation.blink import Blink
 from adafruit_led_animation.animation.rainbowchase import RainbowChase
 from adafruit_led_animation.animation.rainbowsparkle import RainbowSparkle
 from adafruit_led_animation.color import RED
-from badge.screens import EPD, epd_round_button, epd_center_text
+from badge.screens import EPD, epd_round_button, epd_center_text, epd_print_exception
 from badge.events import ANY_BTN_PRESSED, ANY_BTN_RELEASED
 from badge.log import log
 from badge.neopixels import NP as PIXELS
@@ -201,4 +201,7 @@ async def main():
     supervisor.reload()
 
 
-asyncio.run(main())
+try:
+    asyncio.run(main())
+except Exception as e:
+    epd_print_exception(e)

@@ -12,7 +12,7 @@ import badge.buttons
 import badge.events as evt
 from badge.buttons import any_button_downup
 from badge.colors import BLACK, WHITE
-from badge.screens import EPD, epd_round_button, epd_center_text
+from badge.screens import EPD, epd_round_button, epd_center_text, epd_print_exception
 from badge.events import on
 from badge.log import dbg, info
 from badge.neopixels import neopixels_off, set_neopixel
@@ -181,4 +181,7 @@ def run():
 
 if __name__ == "__main__":
     DEBUG and dbg(f"{__file__}", "__name__ == '__main__'")
-    run()
+    try:
+        run()
+    except Exception as e:
+        epd_print_exception(e)
