@@ -1,9 +1,8 @@
-import board, random, time, keypad
+import board, random, time, keypad, math, synthio
 import displayio, digitalio, terminalio
 from adafruit_display_text import label
-from microcontroller import nvm
-
-from badge.neopixels import NP
+from cedargrove_wavebuilder import WaveBuilder, WaveShape
+from cedargrove_waveviz import WaveViz
 
 class TonesApp:
     def __init__(self, lcd: ST7735R, epd: EPD):
@@ -15,7 +14,7 @@ class TonesApp:
             board.BTN3,
             board.BTN4,
         ), value_when_pressed=False)
-        NP.brightness = 0.1
+        self.dac_state = 0
 
     def __del__(self):
         self.buttons.deinit()
@@ -49,7 +48,7 @@ class TonesApp:
         dac_label.anchor_point = (0.5, 0.5)
         dac_label.anchored_position = (64, 56)
 
-        if NP.brightness == 0:
+        if self.dac_state == 0:
             lt = "DAC output is OFF"
             lc = 0xFFFF00
         else:
@@ -79,12 +78,12 @@ class TonesApp:
                 if event.key_number == 0:
                     return True
                 if event.key_number == 1:
-                    if NP.brightness == 0:
-                        NP.brightness = 0.1
+                    if self.dac_state == 0:
+                        self.dac_state = 1
                         dac_status.color = 0x00FF00
                         dac_status.text = "DAC output is ON"
                     else:
-                        NP.brightness = 0
+                        self.dac_state = 0
                         dac_status.color = 0xFFFF00
                         dac_status.text = "DAC output is OFF"
 
@@ -100,119 +99,213 @@ class TonesApp:
         MINTONE     = 0
         MAXTONE     = 7
         TONE        = 5
-        MINFREQ     = 0
-        MAXFREQ     = 7
-        FREQ        = 5
         MINWAVE     = 0
         MAXWAVE     = 4
         WAVE        = 0
+        # Define wave table parameters
+        WAVE_TABLE_LENGTH = 512  # The wave table length in samples
+        SAMPLE_MAXIMUM = 32700  # The maximum value of a sample
 
 
-        palette = displayio.Palette(6)
+
+        palette = displayio.Palette(3)
         palette[0] = 0x000000
-        palette[1] = 0xaa0099
-        palette[2] = 0x22aa00
-        palette[3] = 0xee00bb
-        palette[4] = 0xbbee00
-        palette[5] = 0xbb00ee
+        palette[1] = 0x22aa00
+        palette[2] = 0xbb00ee
         bg_palette = displayio.Palette(2)
         bg_palette[0] = 0x888888
         bg_palette[1] = 0x000000
 
 
-        waveform_area = label.Label(terminalio.FONT, text ='Waveform: ')
-        waveform_area.anchor_point = (0.5,0.5)
-        waveform_area.anchored_position = (1, 1)
-        waveform_area.color = 0x000000
+        waveform_label_area = label.Label(terminalio.FONT, text ="Waveform:")
+        waveform_label_area.anchor_point = (0.0,1.0)
+        waveform_label_area.anchored_position = (2, 13)
+        waveform_label_area.color = 0x00FFFFFF
+        
+        waveform_area = label.Label(terminalio.FONT, text =f"{WAVEFORMS[WAVE]}")
+        waveform_area.anchor_point = (1.0,1.0)
+        waveform_area.anchored_position = (115, 13)
+        waveform_area.color = 0xFFFF00
 
-        note_area = label.Label(terminalio.FONT, text='Note (Frequency): ')
-        note_area.anchor_point = (0.5, 0.5)
-        note_area.anchored_position = (1, 145)
-        note_area.color = 0xc70000
-        note_area.background_color = 0x000000
+        note_label_area = label.Label(terminalio.FONT, text="Note (Hz):")
+        note_label_area.anchor_point = (0.0, 0.0)
+        note_label_area.anchored_position = (2, 115)
+        note_label_area.color = 0x00FFFFFF
+        
+        note_area = label.Label(terminalio.FONT, text=f"{TONES[TONE]} ({FREQUENCIES[TONE]})")
+        note_area.anchor_point = (1.0, 0.0)
+        note_area.anchored_position = (126, 115)
+        note_area.color = 0x38EDF9
 
-        screen = displayio.Bitmap(10, 20, 6)
-        preview = displayio.Bitmap(4, 4, 6)
-        bricks = displayio.Group(scale=8)
-        bricks.append(displayio.TileGrid(screen, pixel_shader=palette, x=0, y=-4))
-        bricks.append(displayio.TileGrid(preview, pixel_shader=palette, x=11, y=2))
-        bg_bitmap = displayio.Bitmap(8, 8, 6)
+        ###########  example wave shape that is displayed as a splash screen ###########
+        # Define the Harmonica wave shape, overtone ratio, and amplitude
+        tone = [
+            (WaveShape.Sine, 1.00, 0.10),
+            (WaveShape.Sine, 2.00, 0.48),
+            (WaveShape.Sine, 3.00, 0.28),
+            (WaveShape.Sine, 4.00, 0.02),
+            (WaveShape.Sine, 5.00, 0.12),
+        ]
+
+        # Create the wave table (wave.wave_table)
+        wave = WaveBuilder(
+            oscillators=tone,
+            table_length=WAVE_TABLE_LENGTH,
+            sample_max=SAMPLE_MAXIMUM,
+            lambda_factor=1.0,
+            loop_smoothing=True,
+            debug=False,
+        )
+
+        # Create a synthio.Envelope object
+        env = synthio.Envelope(
+            attack_time=0.05,
+            attack_level=1.0,
+            decay_time=0.1,
+            release_time=0.1,
+            sustain_level=0.5,
+        )
+
+        graph = WaveViz(wave.wave_table, x=0, y=13, width=128, 
+                        height=101, plot_color=palette[2], back_color=bg_palette[1], 
+                        auto_scale=False)
+        waveform = displayio.Group(scale=1)
+        waveform.append(graph)
+        bg_bitmap = displayio.Bitmap(8, 8, 2)
         background = displayio.Group(scale=16)
         background.append(displayio.TileGrid(bg_bitmap, pixel_shader=bg_palette, x=0, y=0))
 
         root = displayio.Group()
         root.append(background)
+        root.append(waveform_label_area)
         root.append(waveform_area)
+        root.append(note_label_area)
         root.append(note_area)
+        root.append(waveform)
         self.lcd.show(root)
 
-        # brick = None
-        # score = 0
-        # next_brick = Brick(random.randint(0, 4))
-        # tick = time.monotonic()
-        # while True:
-        #     if brick is None:
-        #         score_area.text = (f"{score:04d}")
-        #         next_brick.draw(preview, 0)
-        #         brick = next_brick
-        #         brick.x = screen.width // 2
-        #         next_brick = Brick(random.randint(0, 4))
-        #         next_brick.draw(preview)
-        #         if brick.hit(screen, 0, 0):
-        #             break
-        #     tick += 0.5
-        #     pressed = 0
-        #     event = keypad.Event()
-        #     while True:
-        #         self.lcd.refresh()
-        #         time.sleep(0.075)
-        #         if tick <= time.monotonic():
-        #             break
-        #         brick.draw(screen, 0)
-        #         while self.buttons.events:
-        #             self.buttons.events.get_into(event)
-        #             if event.pressed:
-        #                 pressed |= 1 << event.key_number
-        #             else:
-        #                 pressed &= ~(1 << event.key_number)
-        #         if pressed & 0x08 and not brick.hit(screen, -1, 0):
-        #             brick.x -= 1
-        #         if pressed & 0x04 and not brick.hit(screen, 1, 0):
-        #             brick.x += 1
-        #         if pressed & 0x02 and not brick.hit(screen, 0, 1):
-        #             brick.y += 1
-        #         if pressed & 0x01 and not brick.hit(screen, 0, 0, 1) and not debounce:
-        #             brick.rotation = (brick.rotation + 1) % 4
-        #             debounce = True
-        #         if not pressed:
-        #             debounce = False
-        #         brick.draw(screen)
-        #     brick.draw(screen, 0)
-        #     if brick.hit(screen, 0, 1):
-        #         brick.draw(screen)
-        #         combo = 0
-        #         for y in range(screen.height):
-        #             for x in range(screen.width):
-        #                 if not screen[x, y]:
-        #                     break
-        #             else:
-        #                 combo += 1
-        #                 score += combo
+        while True:
+            event = self.buttons.events.get()
+            if event and event.pressed:
+                if event.key_number == 0:
+                    # calculate the amplitude offset
+                    offset = (FREQUENCIES[TONE] / 10000)
+                    waveform.pop()              # clear display
+                    if WAVE == 0:               # sine wave
+                        # Define the Harmonica wave shape, overtone ratio, and amplitude
+                        tone = [
+                            (WaveShape.Sine, 1.00, (0.82 + offset)),
+                        ]
+                        # Create the wave table (wave.wave_table)
+                        wave = WaveBuilder(
+                            oscillators=tone,
+                            table_length=WAVE_TABLE_LENGTH,
+                            sample_max=SAMPLE_MAXIMUM,
+                            lambda_factor=1.0,
+                            loop_smoothing=True,
+                            debug=False,
+                        )
+                        # Display new waveform
+                        graph = WaveViz(wave.wave_table, x=0, y=13, 
+                                        width=128, height=101, plot_color=palette[2], 
+                                        back_color=bg_palette[1], auto_scale=False)
+                        waveform.append(graph)
+                        
+                    if WAVE == 1:               # square wave
+                        tone = [
+                            (WaveShape.Square, 1.00, (0.82 + offset)),
+                        ]
+                        # Create the wave table (wave.wave_table)
+                        wave = WaveBuilder(
+                            oscillators=tone,
+                            table_length=WAVE_TABLE_LENGTH,
+                            sample_max=SAMPLE_MAXIMUM,
+                            lambda_factor=1.0,
+                            loop_smoothing=True,
+                            debug=False,
+                        )
+                        # Display new waveform
+                        graph = WaveViz(wave.wave_table, x=0, y=13, 
+                                        width=128, height=101, plot_color=palette[2], 
+                                        back_color=bg_palette[1], auto_scale=False)
+                        waveform.append(graph)
 
-        #                 for _ in range(2):
-        #                     NP.fill(palette[random.randint(1,5)])
-        #                     time.sleep(0.1)
-        #                     NP.fill(0x000000)
-        #                     time.sleep(0.1)
+                    if WAVE == 2:               # triangle wave
+                        tone = [
+                            (WaveShape.Triangle, 1.00, (0.82 + offset)),
+                        ]
+                        # Create the wave table (wave.wave_table)
+                        wave = WaveBuilder(
+                            oscillators=tone,
+                            table_length=WAVE_TABLE_LENGTH,
+                            sample_max=SAMPLE_MAXIMUM,
+                            lambda_factor=1.0,
+                            loop_smoothing=True,
+                            debug=False,
+                        )
+                        # Display new waveform
+                        graph = WaveViz(wave.wave_table, x=0, y=13, 
+                                        width=128, height=101, plot_color=palette[2], 
+                                        back_color=bg_palette[1], auto_scale=False)
+                        waveform.append(graph)
 
-        #                 for yy in range(y, 0, -1):
-        #                     for x in range(screen.width):
-        #                         screen[x, yy] = screen[x, yy - 1]
-        #         brick = None
-        #     else:
-        #         brick.y += 1
-        #         brick.draw(screen)
+                    if WAVE == 3:               # saw wave
+                        tone = [
+                            (WaveShape.Saw, 1.00, (0.82 + offset)),
+                        ]
+                        # Create the wave table (wave.wave_table)
+                        wave = WaveBuilder(
+                            oscillators=tone,
+                            table_length=WAVE_TABLE_LENGTH,
+                            sample_max=SAMPLE_MAXIMUM,
+                            lambda_factor=1.0,
+                            loop_smoothing=True,
+                            debug=False,
+                        )
+                        # Display new waveform
+                        graph = WaveViz(wave.wave_table, x=0, y=13, 
+                                        width=128, height=101, plot_color=palette[2], 
+                                        back_color=bg_palette[1], auto_scale=False)
+                        waveform.append(graph)
 
-        # root.append(game_over_area)
+                    if WAVE == 4:               # supersaw wave
+                        tone = [
+                            (WaveShape.Saw, 1.00, (0.30 + offset)),
+                            (WaveShape.Saw, 2.00, (0.23 + offset)),
+                            (WaveShape.Saw, 3.00, (0.27 + offset)),
+                        ]
+                        # Create the wave table (wave.wave_table)
+                        wave = WaveBuilder(
+                            oscillators=tone,
+                            table_length=WAVE_TABLE_LENGTH,
+                            sample_max=SAMPLE_MAXIMUM,
+                            lambda_factor=1.0,
+                            loop_smoothing=True,
+                            debug=False,
+                        )
+                        # Display new waveform
+                        graph = WaveViz(wave.wave_table, x=0, y=13, 
+                                        width=128, height=101, plot_color=palette[2], 
+                                        back_color=bg_palette[1])
+                        waveform.append(graph)
 
-        time.sleep(4)
+                if event.key_number == 1:
+                    if (TONE > MINTONE):
+                        TONE = TONE - 1
+                    else:
+                        TONE = MAXTONE
+                    note_area.text = f"{TONES[TONE]} ({FREQUENCIES[TONE]})"
+                if event.key_number == 2:
+                    if (TONE < MAXTONE):
+                        TONE = TONE + 1
+                    else:
+                        TONE = MINTONE
+                    note_area.text = f"{TONES[TONE]} ({FREQUENCIES[TONE]})"
+                if event.key_number == 3:
+                    if (WAVE < MAXWAVE):
+                        WAVE = WAVE + 1
+                    else:
+                        WAVE = MINWAVE
+                    waveform_area.text = f"{WAVEFORMS[WAVE]}"
+                else:
+                    pass
