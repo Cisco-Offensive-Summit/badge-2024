@@ -4,8 +4,7 @@ from adafruit_display_text import label
 from cedargrove_wavebuilder import WaveBuilder, WaveShape
 from cedargrove_waveviz import WaveViz
 # for DAC to function
-import audiocore, busio # DAC
-import adafruit_ad569x
+import audiocore, audiobusio # DAC
 
 class TonesApp:
     def __init__(self, lcd: ST7735R, epd: EPD):
@@ -96,8 +95,10 @@ class TonesApp:
                     pass
 
     def _play_tones(self):
-        TONES       = ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"]
-        FREQUENCIES = [262, 294, 330, 349, 392, 440, 494, 523]
+        TONES       = [["C4",60,262],["D4",62,294],["E4",64,330],["F4",65,349],["G4",67,392],["A4",69,440],["B4",71,494],["C5",72,523]]
+        NOTE        = 0
+        MIDI        = 1
+        FREQ        = 2
         WAVEFORMS   = ["sine", "square", "triangle", "saw", "supersaw"]
         MINTONE     = 0
         MAXTONE     = 7
@@ -135,7 +136,7 @@ class TonesApp:
         note_label_area.anchored_position = (2, 115)
         note_label_area.color = 0x00FFFFFF
         
-        note_area = label.Label(terminalio.FONT, text=f"{TONES[TONE]} ({FREQUENCIES[TONE]})")
+        note_area = label.Label(terminalio.FONT, text=f"{TONES[TONE][NOTE]} ({TONES[TONE][FREQ]})")
         note_area.anchor_point = (1.0, 0.0)
         note_area.anchored_position = (126, 115)
         note_area.color = 0x38EDF9
@@ -201,7 +202,7 @@ class TonesApp:
             if event and event.pressed:
                 if event.key_number == 0:
                     # calculate the amplitude offset
-                    offset = (FREQUENCIES[TONE] / 10000)
+                    offset = (TONES[TONE][FREQ] / 10000)
                     waveform.pop()              # clear display
                     if WAVE == 0:               # sine wave
                         # Define the Harmonica wave shape, overtone ratio, and amplitude
@@ -340,13 +341,13 @@ class TonesApp:
                         TONE = TONE - 1
                     else:
                         TONE = MAXTONE
-                    note_area.text = f"{TONES[TONE]} ({FREQUENCIES[TONE]})"
+                    note_area.text = f"{TONES[TONE][NOTE]} ({TONES[TONE][FREQ]})"
                 if event.key_number == 2:
                     if (TONE < MAXTONE):
                         TONE = TONE + 1
                     else:
                         TONE = MINTONE
-                    note_area.text = f"{TONES[TONE]} ({FREQUENCIES[TONE]})"
+                    note_area.text = f"{TONES[TONE][NOTE]} ({TONES[TONE][FREQ]})"
                 if event.key_number == 3:
                     if (WAVE < MAXWAVE):
                         WAVE = WAVE + 1
