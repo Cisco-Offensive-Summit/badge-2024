@@ -1,10 +1,11 @@
-import board, random, time, keypad, math, synthio
+import board, random, time, keypad, math
 import displayio, digitalio, terminalio
 from adafruit_display_text import label
+# for wavetable visualizer
 from cedargrove_wavebuilder import WaveBuilder, WaveShape
 from cedargrove_waveviz import WaveViz
-# for DAC to function
-import audiocore, audiobusio # DAC
+# for I2S DAC to function
+import synthio, audiocore, audiobusio
 
 class TonesApp:
     def __init__(self, lcd: ST7735R, epd: EPD):
@@ -106,6 +107,14 @@ class TonesApp:
         MINWAVE     = 0
         MAXWAVE     = 4
         WAVE        = 0
+        
+        # set up the I2S board
+        i2s_bck_pin = board.GPIO44 # BCK pin
+        i2s_lck_pin = board.GPIO4 # LCK pin
+        i2s_dat_pin = board.GPIO43 # DIN pin
+        audio = audiobusio.I2SOut(bit_clock=i2s_bck_pin, word_select=i2s_lck_pin, data=i2s_dat_pin)
+        
+        
         # Define wave table parameters
         WAVE_TABLE_LENGTH = 512  # The wave table length in samples
         SAMPLE_MAXIMUM = 32700  # The maximum value of a sample
@@ -125,7 +134,7 @@ class TonesApp:
         waveform_label_area.anchor_point = (0.0,1.0)
         waveform_label_area.anchored_position = (2, 13)
         waveform_label_area.color = 0x00FFFFFF
-        
+
         waveform_area = label.Label(terminalio.FONT, text =f"{WAVEFORMS[WAVE]}")
         waveform_area.anchor_point = (1.0,1.0)
         waveform_area.anchored_position = (115, 13)
@@ -135,7 +144,7 @@ class TonesApp:
         note_label_area.anchor_point = (0.0, 0.0)
         note_label_area.anchored_position = (2, 115)
         note_label_area.color = 0x00FFFFFF
-        
+
         note_area = label.Label(terminalio.FONT, text=f"{TONES[TONE][NOTE]} ({TONES[TONE][FREQ]})")
         note_area.anchor_point = (1.0, 0.0)
         note_area.anchored_position = (126, 115)
@@ -170,8 +179,8 @@ class TonesApp:
             sustain_level=0.5,
         )
 
-        graph = WaveViz(wave.wave_table, x=0, y=13, width=128, 
-                        height=101, plot_color=palette[2], back_color=bg_palette[1], 
+        graph = WaveViz(wave.wave_table, x=0, y=13, width=128,
+                        height=101, plot_color=palette[2], back_color=bg_palette[1],
                         auto_scale=False)
         waveform = displayio.Group(scale=1)
         waveform.append(graph)
@@ -189,15 +198,15 @@ class TonesApp:
         self.lcd.show(root)
 
         while True:
-            # set up DAC if enabled
-            if (self.dac_state == 1):
-                try:
-                    i2c = board.I2C()
-                    dac = adafruit_ad569x.Adafruit_AD569x(i2c)
-                except:
-                    self.dac_state = 0
-                    print("turning DAC off")
-                    
+#            # set up DAC if enabled
+#            if (self.dac_state == 1):
+#                try:
+#                    i2c = board.I2C()
+#                    dac = adafruit_ad569x.Adafruit_AD569x(i2c)
+#                except:
+#                    self.dac_state = 0
+#                    print("turning DAC off")
+
             event = self.buttons.events.get()
             if event and event.pressed:
                 if event.key_number == 0:
@@ -219,17 +228,21 @@ class TonesApp:
                             debug=False,
                         )
                         # Display new waveform
-                        graph = WaveViz(wave.wave_table, x=0, y=13, 
-                                        width=128, height=101, plot_color=palette[2], 
+                        graph = WaveViz(wave.wave_table, x=0, y=13,
+                                        width=128, height=101, plot_color=palette[2],
                                         back_color=bg_palette[1], auto_scale=False)
                         waveform.append(graph)
-                        
+
                         if (self.dac_state == 1):
                             ### play note
-                            pass
+                            with open(f"apps/tones/notes/sine_{TONES[TONE][NOTE]}.wav", "rb") as f:
+                                wav = audiocore.WaveFile(f)
+                                audio.play(wav)
+                                while a.playing:
+                                    pass
                         else:
                             pass
-                        
+
                     if WAVE == 1:               # square wave
                         tone = [
                             (WaveShape.Square, 1.00, (0.82 + offset)),
@@ -244,17 +257,21 @@ class TonesApp:
                             debug=False,
                         )
                         # Display new waveform
-                        graph = WaveViz(wave.wave_table, x=0, y=13, 
-                                        width=128, height=101, plot_color=palette[2], 
+                        graph = WaveViz(wave.wave_table, x=0, y=13,
+                                        width=128, height=101, plot_color=palette[2],
                                         back_color=bg_palette[1], auto_scale=False)
                         waveform.append(graph)
-                        
+
                         if (self.dac_state == 1):
                             ### play note
-                            pass
+                            with open(f"apps/tones/notes/square_{TONES[TONE][NOTE]}.wav", "rb") as f:
+                                wav = audiocore.WaveFile(f)
+                                audio.play(wav)
+                                while a.playing:
+                                    pass                                
                         else:
                             pass
-                        
+
 
                     if WAVE == 2:               # triangle wave
                         tone = [
@@ -270,17 +287,21 @@ class TonesApp:
                             debug=False,
                         )
                         # Display new waveform
-                        graph = WaveViz(wave.wave_table, x=0, y=13, 
-                                        width=128, height=101, plot_color=palette[2], 
+                        graph = WaveViz(wave.wave_table, x=0, y=13,
+                                        width=128, height=101, plot_color=palette[2],
                                         back_color=bg_palette[1], auto_scale=False)
                         waveform.append(graph)
-                        
+
                         if (self.dac_state == 1):
                             ### play note
-                            pass
+                            with open(f"apps/tones/notes/triangle_{TONES[TONE][NOTE]}.wav", "rb") as f:
+                                wav = audiocore.WaveFile(f)
+                                audio.play(wav)
+                                while a.playing:
+                                    pass
                         else:
                             pass
-                        
+
 
                     if WAVE == 3:               # saw wave
                         tone = [
@@ -296,17 +317,21 @@ class TonesApp:
                             debug=False,
                         )
                         # Display new waveform
-                        graph = WaveViz(wave.wave_table, x=0, y=13, 
-                                        width=128, height=101, plot_color=palette[2], 
+                        graph = WaveViz(wave.wave_table, x=0, y=13,
+                                        width=128, height=101, plot_color=palette[2],
                                         back_color=bg_palette[1], auto_scale=False)
                         waveform.append(graph)
-                        
+
                         if (self.dac_state == 1):
                             ### play note
-                            pass
+                            with open(f"apps/tones/notes/saw_{TONES[TONE][NOTE]}.wav", "rb") as f:
+                                wav = audiocore.WaveFile(f)
+                                audio.play(wav)
+                                while a.playing:
+                                    pass
                         else:
                             pass
-                        
+
 
                     if WAVE == 4:               # supersaw wave
                         tone = [
@@ -324,17 +349,21 @@ class TonesApp:
                             debug=False,
                         )
                         # Display new waveform
-                        graph = WaveViz(wave.wave_table, x=0, y=13, 
-                                        width=128, height=101, plot_color=palette[2], 
+                        graph = WaveViz(wave.wave_table, x=0, y=13,
+                                        width=128, height=101, plot_color=palette[2],
                                         back_color=bg_palette[1])
                         waveform.append(graph)
-                        
+
                         if (self.dac_state == 1):
                             ### play note
-                            pass
+                            with open(f"apps/tones/notes/supersaw_{TONES[TONE][NOTE]}.wav", "rb") as f:
+                                wav = audiocore.WaveFile(f)
+                                audio.play(wav)
+                                while a.playing:
+                                    pass
                         else:
                             pass
-                        
+
 
                 if event.key_number == 1:
                     if (TONE > MINTONE):
