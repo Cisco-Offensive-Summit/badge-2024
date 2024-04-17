@@ -19,17 +19,6 @@ from badge.launcher_ui import draw_epd_launch_screen
 
 supervisor.runtime.autoreload = False
 
-INDICATORS = [
-    (1, 0, 0, 0),
-    (0, 1, 0, 0),
-    (0, 0, 1, 0),
-    (0, 0, 0, 1),
-    (2, 1, 1, 1),
-    (1, 2, 1, 1),
-    (1, 1, 2, 1),
-    (1, 1, 1, 2)
-]
-
 OFF, DIM, BRIGHT = (0, 0, 0), (0, 25, 25), (0, 106, 66)
 
 NEO_STATES = [OFF, DIM, BRIGHT]
@@ -41,12 +30,22 @@ def get_neo_update_vals(pattern):
     return ret
 
 
-sel_entries = list(zip(APPLIST, INDICATORS))
+def indicators():
+    i = 0
+    while True:
+        base = (i // 4) % 2
+        val = [base] * 4
+        val[i%4] = base + 1
+        yield tuple(val)
+        i += 1
+
+
+sel_entries = list(zip(APPLIST, indicators()))
 SELECTO = ziplist(sel_entries)
 
 # If there's at least one app entry, then set the indicator light.
 if APPLIST:
-    set_neopixels(*get_neo_update_vals(INDICATORS[0]))
+    set_neopixels(*get_neo_update_vals(sel_entries[0][1]))
 
 
 @on(evt.BTN_A_PRESSED)
@@ -114,7 +113,6 @@ def launch_app(entry):
     supervisor.set_next_code_file(entry.code_file)
     supervisor.reload()
     sys.exit(0)
-
 
 async def main():
     # log("main", APPLIST)
