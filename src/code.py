@@ -27,12 +27,16 @@ INDICATORS = [
     (2, 1, 1, 1),
     (1, 2, 1, 1),
     (1, 1, 2, 1),
-    (1, 1, 1, 2)
+    (1, 1, 1, 2),
+    (3, 2, 2, 2),
+    (2, 3, 2, 2),
+    (2, 2, 3, 2),
+    (2, 2, 2, 3)
 ]
 
-OFF, DIM, BRIGHT = (0, 0, 0), (0, 25, 25), (0, 106, 66)
+OFF, DIM, BRIGHT, R_BRIGHT = (0, 0, 0), (0, 25, 25), (0, 106, 66), (0, 255, 150)
 
-NEO_STATES = [OFF, DIM, BRIGHT]
+NEO_STATES = [OFF, DIM, BRIGHT, R_BRIGHT]
 BOOT_CONFIG_START = len(microcontroller.nvm)//2
 
 
