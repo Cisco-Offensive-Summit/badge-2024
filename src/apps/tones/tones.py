@@ -238,7 +238,7 @@ class TonesApp:
                             with open(f"apps/tones/notes/sine_{TONES[TONE][NOTE]}.wav", "rb") as f:
                                 wav = audiocore.WaveFile(f)
                                 audio.play(wav)
-                                while a.playing:
+                                while audio.playing:
                                     pass
                         else:
                             pass
@@ -267,7 +267,7 @@ class TonesApp:
                             with open(f"apps/tones/notes/square_{TONES[TONE][NOTE]}.wav", "rb") as f:
                                 wav = audiocore.WaveFile(f)
                                 audio.play(wav)
-                                while a.playing:
+                                while audio.playing:
                                     pass                                
                         else:
                             pass
@@ -297,7 +297,7 @@ class TonesApp:
                             with open(f"apps/tones/notes/triangle_{TONES[TONE][NOTE]}.wav", "rb") as f:
                                 wav = audiocore.WaveFile(f)
                                 audio.play(wav)
-                                while a.playing:
+                                while audio.playing:
                                     pass
                         else:
                             pass
@@ -327,7 +327,7 @@ class TonesApp:
                             with open(f"apps/tones/notes/saw_{TONES[TONE][NOTE]}.wav", "rb") as f:
                                 wav = audiocore.WaveFile(f)
                                 audio.play(wav)
-                                while a.playing:
+                                while audio.playing:
                                     pass
                         else:
                             pass
@@ -359,7 +359,7 @@ class TonesApp:
                             with open(f"apps/tones/notes/supersaw_{TONES[TONE][NOTE]}.wav", "rb") as f:
                                 wav = audiocore.WaveFile(f)
                                 audio.play(wav)
-                                while a.playing:
+                                while audio.playing:
                                     pass
                         else:
                             pass
