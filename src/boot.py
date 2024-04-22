@@ -7,9 +7,9 @@ import secrets
 import storage
 import supervisor                                                                                     
 import updater
-from badge.screens import EPD
 from time import sleep
 from traceback import format_exception
+from badge.screens import EPD
 
 # boot.py will process boot options from nvm
 # the process goes like this:
@@ -159,12 +159,15 @@ default_config = {
 
 new_config = None
 BOOT_CONFIG_START = len(microcontroller.nvm) // 2
-try:
-    new_config = json.loads(microcontroller.nvm[BOOT_CONFIG_START:])
-except Exception as e:
-    print("nvram new_config json.loads exception:")
-    print(repr(e))
-    print()
+
+# If first byte is 0 then its been cleared
+if microcontroller.nvm[BOOT_CONFIG_START] != 0:
+    try:
+        new_config = json.loads(microcontroller.nvm[BOOT_CONFIG_START:])
+    except Exception as e:
+        print("nvram new_config json.loads exception:")
+        print(repr(e))
+        print()
 
 boot_config = default_config
 
@@ -193,8 +196,3 @@ if boot_config["mount_root_rw"]:
 # next_code_file will be set by launcher,
 # then passed back after it hard boots with the updated
 # boot settings
-
-print(f"boot config:{repr(boot_config)}")
-
-# clear the nvram
-# microcontroller.nvm[:] = b"\x00" * len(microcontroller.nvm)
