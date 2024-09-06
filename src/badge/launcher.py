@@ -10,6 +10,7 @@ from adafruit_display_text.scrolling_label import ScrollingLabel
 from badge.app import App
 from badge.fileops import is_dir, is_file
 from badge.colors import SITE_BLUE
+from badge.colors import SITE_RED
 from badge.screens import EPD
 from badge.screens import LCD
 from badge.screens import clear_lcd_screen
@@ -90,7 +91,7 @@ def display_lcd_app_icon(app: App):
   group = Group()  
   background = displayio.Bitmap(128, 128, 1)
   palette1 = displayio.Palette(1)
-  palette1[0] = SITE_BLUE
+  palette1[0] = SITE_RED 
   bitmap, palette2 = adafruit_imageload.load(icon,bitmap=displayio.Bitmap,palette=displayio.Palette)
   tile_grid1 = TileGrid(background, pixel_shader=palette1)
   tile_grid2 = TileGrid(bitmap, pixel_shader=palette2)
