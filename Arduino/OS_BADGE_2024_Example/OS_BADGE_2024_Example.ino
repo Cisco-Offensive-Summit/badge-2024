@@ -93,14 +93,14 @@ void setup() {
 
   //Setup EPD pins
   pinMode(EPD_BUSY, INPUT);            // set up EPD Busy pin as inputu
-	pinMode(EPD_RESET, OUTPUT);          // set upReset pin as output
-	pinMode(EPD_DISCHARGE, OUTPUT);      // set up discharge pin as output
-	pinMode(EPD_CS, OUTPUT);             // set up chip select pin as output
+  pinMode(EPD_RESET, OUTPUT);          // set upReset pin as output
+  pinMode(EPD_DISCHARGE, OUTPUT);      // set up discharge pin as output
+  pinMode(EPD_CS, OUTPUT);             // set up chip select pin as output
   pinMode(EPD_BORDER, OUTPUT);         // set up border pin, unused in OS2024 schematic, assign to unused pin 40 to prevent silly error messages on the serial monitor
   pinMode(EPD_PANEL_ON, OUTPUT);       // set up Panel_on pin, unused in OS2024 schematic, assign to unused pin 41 to prevent silly error messages on the serial monitor
   digitalWrite(EPD_RESET, LOW);        // leave in Not Reset
-	digitalWrite(EPD_DISCHARGE, LOW);    // leave in Not Discharge
-	digitalWrite(EPD_CS, LOW);           // leave in Not Chip Select
+  digitalWrite(EPD_DISCHARGE, LOW);    // leave in Not Discharge
+  digitalWrite(EPD_CS, LOW);           // leave in Not Chip Select
   
   //Make the TFT screen RED
   tft.startWrite();tft.fillScreen(ST7735_RED);tft.endWrite();   //tft start, fillscreen with red, tft end           
@@ -131,7 +131,7 @@ void loop() {
 
   //Update the TFT countdown screen and show button pushes
   tft.startWrite();                                                                                             //start TFT SPI
-  tft.setTextSize(7); tft.setCursor(TFT_CENTER_X, TFT_CENTER_Y); tft.setTextColor(ST7735_RED);                  // set text size, start transaction, reset cursor position, set text color to red
+  tft.setTextSize(7); tft.setCursor(TFT_CENTER_X, TFT_CENTER_Y); tft.setTextColor(ST7735_RED);                  // set text size, reset cursor position, set text color to red
   if (lcd_timer == (COUNTDOWN_TIME - 1)){tft.print(String(0));} else {tft.print(String(lcd_timer + 1));}        // overwrite the previous loop value in red to make it smoothly dissapear
   tft.setCursor(38, 40); tft.setTextColor(ST7735_WHITE);tft.print(String(lcd_timer));                           // reset cursor position, set color to white, print the new value in white to make it appear
   
