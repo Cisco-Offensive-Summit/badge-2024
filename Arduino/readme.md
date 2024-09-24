@@ -1,4 +1,13 @@
-OS_BADGE_2024_Example is an Arduino code example sketch that demonstrates the 2024 badge peripherals (Orange LED, TFT screen + backlight control, EPD screen, Neopixel LEDs, Hard Buttons).  You will need the files in the /libraries directory; copy these to your local /Arduino/libraries directory before compiling.  
+# OS_BADGE_2024_Example 
+This sketch is an Arduino C code example sketch that simultaneously demonstrates all of the the 2024 badge peripherals:  
+Blink the Orange LED  
+Print to TFT screen  
+PWM TFT backlight control  
+Print to EPD screen 
+Illuminate Neopixel LEDs  
+Test Hard Buttons (report to TFT screen)
+
+# You will need the files in the /libraries directory; copy these to your local /Arduino/libraries directory before compiling.  
 
 Setup of Arduino Environment:
 
