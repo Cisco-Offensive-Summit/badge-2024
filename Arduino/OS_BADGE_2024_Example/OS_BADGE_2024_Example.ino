@@ -1,8 +1,8 @@
 //DEMO Sketch for OS2024 Badge to simultaneously demonstrate all peripherals (Orange LED, TFT + backlight control, EPD, Neopixel, Buttons)
 
-//Include files                      // electronic paper display (EPD) ports: EPD_MISO=9, EPD_MOSI=11, EPD_CLK=12, EPD_CS=18
+//Include files                     // electronic paper display (EPD) ports: EPD_MISO=9, EPD_MOSI=11, EPD_CLK=12, EPD_CS=18
 #include <EPD_V231_G2.h>            // you MUST modify the call in the SPI_on function in EPD_V231_G2.cpp to be SPI.begin(EPD_CLK, EPD_MISO, EPD_MOSI, EPD_CS);         
-#include <epd_images.h>                    // header file with a cat 200x96 EPD image array, "JED!!" 200x96 EPD image array, and a custom 200x96 OS224 EPD image array
+#include <epd_images.h>             // header file with a cat 200x96 EPD image array, "JED!!" 200x96 EPD image array, and a custom 200x96 OS224 EPD image array
 #include <Adafruit_ST7735.h>        // Hardware-specific library for ST7735 TFT displays 
 #include <Adafruit_NeoPixel.h>      // Neopixel drivery for addressable LED's D3, D4, D5, D6
 
