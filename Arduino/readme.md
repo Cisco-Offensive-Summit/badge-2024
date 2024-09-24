@@ -1,5 +1,5 @@
 ### OS_BADGE_2024_Example - 
-#### An Arduino C code example sketch created in Arduino IDE 2.3.2 that demonstrates the the 2024 badge peripherals:  
+#### An Arduino C code example sketch created in Arduino IDE 2.3.2 that demonstrates the 2024 badge peripherals:  
 Blink the Orange LED  
 Print to TFT screen  
 PWM TFT backlight control  
