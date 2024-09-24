@@ -2,9 +2,9 @@
 #### An Arduino C code example sketch created in Arduino IDE 2.3.2 that demonstrates the 2024 badge peripherals:  
 Blink the Orange LED  
 Print to TFT screen  
-PWM TFT backlight control  
+PWM TFT backlight brightness control  
 Print to EPD screen 
-Illuminate Neopixel LEDs  
+Illuminate Neopixel LEDs (including brightness)
 Test Hard Buttons (report to TFT screen)
 
 *** Note that this sketch is intended to show how to  program the 2024 Offensive Summit Badge in an Arduino C code environment.  The original 2024 badge firmware that was installed when you received the badge uses Circuit Python and details for programming the 2024 Offensive Summit Badge using python can be found [here](https://github.com/Cisco-Offensive-Summit/badge-2024/tree/main/firmware).  
