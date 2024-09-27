@@ -1,6 +1,6 @@
 ## badger.becomingahacker.com
 
-#### The badger.becomingahacker.com website will only be accessible during the Offensive Summit!!!
+#### The badger.becomingahacker.com website is only accessible during the Offensive Summit!!!
 
 #### The badger.becomingahacker.com website will not exist before or after the Offensive Summit!!! 
 
