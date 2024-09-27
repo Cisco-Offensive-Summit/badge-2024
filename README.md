@@ -22,8 +22,6 @@ https://github.com/Cisco-Offensive-Summit/badge-2024/tree/main/firmware
 
 https://github.com/Cisco-Offensive-Summit/badge-2024/blob/main/website/Badge_Recovery.pdf   
 
-#### ** Note that 'secrets.py' is only used when connecting to badger.becommingahacker.com; this is not relevant before or after the conference when badger.becomingahacker.com does not exist!!!  
-
 #### Here are details for programming the badge using C code in an Arduino environment:  
 
 https://github.com/Cisco-Offensive-Summit/badge-2024/tree/main/Arduino
