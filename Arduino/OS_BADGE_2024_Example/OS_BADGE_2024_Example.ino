@@ -117,7 +117,7 @@ int pixel_timer = 0;                  //Variable to cycle neo Pixel LEDs
 void loop() {
   // put your main code here, to run repeatedly:
 
-  delay (LOOP_DELAY);                //do this loop every LOOP_DELAY milli seconds, 75 works nice
+  delay(LOOP_DELAY);                //do this loop every LOOP_DELAY milli seconds, 75 works nice
 
   //cycle the Orange LED with each tick of led_timer 
   if (led_timer == 1){digitalWrite(LED1, HIGH);led_timer++;} else {digitalWrite(LED1, LOW);led_timer = 0;} led_timer++; 
