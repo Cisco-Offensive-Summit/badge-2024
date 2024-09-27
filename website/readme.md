@@ -2,7 +2,7 @@
 
 #### The badger.becomingahacker.com website will only be accessible during the Offensive Summit!!!
 
-#### The badger.becomingahacker.com website will not exist before or after the summit!!! 
+#### The badger.becomingahacker.com website will not exist before or after the Offensive Summit!!! 
 
 #### The name and schedule application(s) will not be able to connect to the server at badger.becomingahacker.com before or after the summit.  
 
