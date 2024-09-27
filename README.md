@@ -1,5 +1,3 @@
-# badge-2024
-
 ## badger.becomingahacker.com
 
 #### The badger.becomingahacker.com website is only accessible during the Offensive Summit!!!
