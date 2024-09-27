@@ -133,7 +133,7 @@ void loop() {
   tft.startWrite();                                                                                             //start TFT SPI
   tft.setTextSize(7); tft.setCursor(TFT_CENTER_X, TFT_CENTER_Y); tft.setTextColor(ST7735_RED);                  // set text size, reset cursor position, set text color to red
   if (lcd_timer == (COUNTDOWN_TIME - 1)){tft.print(String(0));} else {tft.print(String(lcd_timer + 1));}        // overwrite the previous loop value in red to make it smoothly dissapear
-  tft.setCursor(38, 40); tft.setTextColor(ST7735_WHITE);tft.print(String(lcd_timer));                           // reset cursor position, set color to white, print the new value in white to make it appear
+  tft.setCursor(TFT_CENTER_X, TFT_CENTER_Y); tft.setTextColor(ST7735_WHITE);tft.print(String(lcd_timer));       // reset cursor position, set color to white, print the new value in white to make it appear
   
   //Write any Button Pushes in small text WHITE color to the screen if they are pressed otherwise write it in small text RED color to the screen to make invisible
   if (digitalRead(S4) == 0 ){tft.setTextColor(ST7735_WHITE);tft.setTextSize(2);tft.setCursor(10, 100);tft.print("S4");} else {tft.setTextSize(2);tft.setCursor(10, 100);tft.setTextColor(ST7735_RED);tft.print("S4");}
