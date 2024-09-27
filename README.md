@@ -18,11 +18,11 @@ https://github.com/Cisco-Offensive-Summit/badge-2024/tree/main/src
 
 https://github.com/Cisco-Offensive-Summit/badge-2024/tree/main/firmware
 
-#### Here is a .pdf from the badger.becomingahacker.com website detailing how to recover the 2024 offensive badge if Circuitpython/REPL does not boot:    
+#### Here is a .pdf from the badger.becomingahacker.com website detailing how to recover the 2024 offensive badge if Circuitpython/REPL fails to boot:    
 
 https://github.com/Cisco-Offensive-Summit/badge-2024/blob/main/website/Badge_Recovery.pdf   
 
-#### Note that the 'secrets.py' file is only used when connecting to badger.becommingahacker.com; it is not necessary before or after the conference when badger.becomingahacker.com does not exist!!!  
+#### ** Note that the 'secrets.py' file is only used when connecting to badger.becommingahacker.com; it is not necessary before or after the conference when badger.becomingahacker.com does not exist!!!  
 
 #### Here are details on how to program the badge using C code in an Arduino environment:  
 
