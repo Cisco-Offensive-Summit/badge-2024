@@ -1,3 +1,5 @@
 # badge-2024
 
-https://badger.becomingahacker.com/badge_info
+https://github.com/Cisco-Offensive-Summit/badge-2024/blob/main/website/Badge-Info.png
+
+
