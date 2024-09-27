@@ -6,7 +6,7 @@
 
 #### The name and schedule application(s) will not be able to connect to the server at badger.becomingahacker.com before or after the summit!!!  
 
-#### The file 'secrets.py' is used to connect to badger.becommingahacker.com; it is not necessary when badger.becommingahacker does not exist!!!  
+#### The file 'secrets.py' is used to connect to badger.becommingahacker.com; it is not necessary when badger.becomingahacker.com does not exist!!!  
 
 #### Here is a .pdf file with useful details from the badger.becommingahacker.com website detailing how to assemble and program the 2024 badge:  
 
