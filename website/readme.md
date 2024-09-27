@@ -4,7 +4,7 @@
 
 #### The badger.becomingahacker.com website will not exist before or after the Offensive Summit!!! 
 
-#### Your badge should already have circuit python and OS2024 applications loaded you received it!!!
+#### Your badge will already have circuit python and OS2024 applications loaded on the badge when you receive it!!!
 
 #### The name and schedule application(s) will not be able to connect to the server at badger.becomingahacker.com before or after the summit!!!  
 
