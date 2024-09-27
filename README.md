@@ -1,4 +1,4 @@
-#### Your badge will already have circuit python + OS2024 applications loaded when you receive it!!!
+#### Your OS2024 badge will already have circuit python + OS2024 applications loaded when you receive it!!!
 
 #### The badger.becomingahacker.com website is only accessible during the Offensive Summit!!!
 
@@ -10,19 +10,19 @@
 
 https://github.com/Cisco-Offensive-Summit/badge-2024/blob/main/website/Badge_info.pdf
 
-#### Here is the code base for the apps that came on the 2024 badge:  
+#### Here is the code base for the apps that came installed on the 2024 badge:  
 
 https://github.com/Cisco-Offensive-Summit/badge-2024/tree/main/src
 
-#### Here are details for how to install and test Circuitpython:  
+#### Here are details for how to install and test the Circuitpython environment on the 2024 badge:  
 
 https://github.com/Cisco-Offensive-Summit/badge-2024/tree/main/firmware
 
-#### Here is a .pdf from the badger.becomingahacker.com website detailing how to recover the 2024 offensive badge if Circuitpython/REPL fails to boot:    
+#### Here is a .pdf from the badger.becomingahacker.com website with useful details on how to recover the 2024 offensive badge if Circuitpython/REPL fails to boot:    
 
 https://github.com/Cisco-Offensive-Summit/badge-2024/blob/main/website/Badge_Recovery.pdf   
 
-#### ** Note that the 'secrets.py' file is only used when connecting to badger.becommingahacker.com; it is not necessary before or after the conference when badger.becomingahacker.com does not exist!!!  
+#### ** Note that 'secrets.py' is only used when connecting to badger.becommingahacker.com; this is not relevant before or after the conference when badger.becomingahacker.com does not exist!!!  
 
 #### Here are details on how to program the badge using C code in an Arduino environment:  
 
