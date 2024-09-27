@@ -1,4 +1,4 @@
-## badger.becomingahacker.com
+## [badger.becomingahacker.com](https://badger.becomingahacker.com)
 
 #### Your badge will already have circuit python and OS2024 applications loaded on the badge when you receive it!!!
 
