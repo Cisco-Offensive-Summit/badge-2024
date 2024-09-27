@@ -47,6 +47,7 @@
 #define COUNTDOWN_TIME  6                //value to countdown before each EPD image cycle (will display as 5 down to 0)
 #define TFT_CENTER_X    38               //out of 128 max x position value
 #define TFT_CENTER_Y    40               //out of 128 max y position value
+#define LOOP_DELAY      75               //main loop runs every 75 milliseconds
 
 
 // Defin TFT Display
@@ -116,7 +117,7 @@ int pixel_timer = 0;                  //Variable to cycle neo Pixel LEDs
 void loop() {
   // put your main code here, to run repeatedly:
 
-  delay (750);          //do this loop every 750 milli seconds 
+  delay (LOOP_DELAY);                //do this loop every LOOP_DELAY milli seconds, 75 works nice
 
   //cycle the Orange LED with each tick of led_timer 
   if (led_timer == 1){digitalWrite(LED1, HIGH);led_timer++;} else {digitalWrite(LED1, LOW);led_timer = 0;} led_timer++; 
