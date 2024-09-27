@@ -10,7 +10,7 @@
 
 #### Here is a .pdf file from the badger.becommingahacker.com website detailing how to assemble and program the 2024 badge:  
 
-https://github.com/Cisco-Offensive-Summit/badge-2024/blob/main/website/Badge-Info.png  
+https://github.com/Cisco-Offensive-Summit/badge-2024/blob/main/website/Badge_info.pdf
 
 #### Here is the code base for the apps that came on the 2024 badge:  
 
