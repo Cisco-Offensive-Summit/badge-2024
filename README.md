@@ -1,6 +1,6 @@
 #### Your OS2024 badge will already have circuit python + OS2024 applications loaded when you receive it!!!
 
-#### The badger.becomingahacker.com server is only up during the Offensive Summit!!!
+#### The badger.becomingahacker.com server is only available during the Offensive Summit!!!
 
 #### The badger.becomingahacker.com website will not exist before or after the Offensive Summit!!! 
 
