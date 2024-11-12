@@ -15,7 +15,7 @@ To find plastic standoff solution(s) such that the mounting hardware is less exp
 
 | Standoff            | Quantity |  Digikey Part | Comment | 
 | ------------------- | -------- | ------------- | ------- |
-| TFT Screen Standoff | 4        |  732-10356-ND |  Tested Good and works!!!       |
-| PCB Standoff        | 4        |  732-10356-ND |  Tested OK on PCB side only, adjust backing plate thickness to .062"!!! |
+| TFT Screen Standoff | 4        |               |  Tested Good and works!!!       |
+| PCB Standoff        | 4        |               |  Tested OK on PCB side only, adjust backing plate thickness to .062"!!! |
 | Micro Lipo Standoff | 4        |  145-27MMP004-ND | Tested OK on Micro Lipo side only, adjust PCB thruhole diameter to .100"!!! | 
 
