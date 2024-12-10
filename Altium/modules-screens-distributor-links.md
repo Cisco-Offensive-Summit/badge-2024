@@ -2,7 +2,7 @@ Here are links for procurement of the Micro Lipo (P5), EPD screen (P3), and TFT 
 
 Micro Lipo USB C Module (P5):  
 	https://www.adafruit.com/product/4410  
-	https://www.google.com/search?client=safari&rls=en&q=Mouser+485-4410&ie=UTF-8&oe=UTF-8  
+	https://www.mouser.com/ProductDetail/Adafruit/4410
 	https://www.digikey.com/en/products/detail/adafruit-industries-llc/4410/10673110  
 	https://www.robotshop.com/products/adafruit-micro-usb-lipo-charger  
 	https://www.ebay.com/itm/115706588606  
