@@ -7,5 +7,6 @@
     * [Assembly](REV1/Project%20Outputs%20for%202024-Badge-Altium-Project-REV1/2024-Badge-Assembly-REV1.PDF)
     * [Fabdrawing](REV1/Project%20Outputs%20for%202024-Badge-Altium-Project-REV1/2024-Badge-Fabdrawing-REV1.PDF)
 
-### Distributor links for the EPD screen, TFT scren, and Micro Lipo Module:
-    * [
+### Distributor links for the EPD screen, TFT screen, and Micro Lipo Module:  
+
+   * [modules-screens-distributor-links.md](https://github.com/Cisco-Offensive-Summit/badge-2024/blob/main/Altium/modules-screens-distributor-links.md)
