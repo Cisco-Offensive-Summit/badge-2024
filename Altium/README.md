@@ -6,3 +6,6 @@
     * [Schematic](REV1/Project%20Outputs%20for%202024-Badge-Altium-Project-REV1/2024-Badge-Schematic-REV1.pdf)
     * [Assembly](REV1/Project%20Outputs%20for%202024-Badge-Altium-Project-REV1/2024-Badge-Assembly-REV1.PDF)
     * [Fabdrawing](REV1/Project%20Outputs%20for%202024-Badge-Altium-Project-REV1/2024-Badge-Fabdrawing-REV1.PDF)
+
+### Distributor links for the EPD screen, TFT scren, and Micro Lipo Module:
+    * [
