@@ -22,9 +22,9 @@ https://github.com/Cisco-Offensive-Summit/badge-2024/tree/main/Arduino
 
 https://github.com/Cisco-Offensive-Summit/badge-2024/tree/main/Altium  
 
-#### Here is a .pdf file from the badger.becomingahacker.com website detailing how to assemble and program the 2024 badge:  
+#### Here is a .pdf file detailing how to assemble the 2024 badge:  
 
-https://github.com/Cisco-Offensive-Summit/badge-2024/blob/main/Altium/REV1/Project%20Outputs%20for%202024-Badge-Altium-Project-REV1/2024-Badge-Final-Assembly.pdf
+https://github.com/Cisco-Offensive-Summit/badge-2024/blob/main/Altium/REV1/Project%20Outputs%20for%202024-Badge-Altium-Project-REV1/2024-Badge-Final-Assembly.pdf  
 see also https://github.com/Cisco-Offensive-Summit/badge-2024/blob/main/website/Badge_info.pdf  
 
 #### Notes:
