@@ -1,4 +1,4 @@
-### Research for plastic standoffs:
+### Research for plastic standoffs (using REV1 PCB):
 
 #### Goal:   
 To find plastic standoff solution(s) such that the mounting hardware is less expensive and easier to assemble (no screws!!).  
