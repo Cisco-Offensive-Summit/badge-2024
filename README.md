@@ -22,7 +22,7 @@ https://github.com/Cisco-Offensive-Summit/badge-2024/blob/main/website/Badge_Rec
 
 https://github.com/Cisco-Offensive-Summit/badge-2024/tree/main/Arduino
 
-#### Here are the design files and production data used to build the REV1 badge which has been produced and distributed:
+#### Here are the design files and production data used to build the REV1 badge:
 https://github.com/Cisco-Offensive-Summit/badge-2024/tree/main/Altium
 
 #### Notes:
