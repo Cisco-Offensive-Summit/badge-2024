@@ -22,10 +22,13 @@ https://github.com/Cisco-Offensive-Summit/badge-2024/blob/main/website/Badge_Rec
 
 https://github.com/Cisco-Offensive-Summit/badge-2024/tree/main/Arduino
 
-#### Your OS2024 badge will already have circuit python + OS2024 apps loaded when you receive it!!!
+#### Here are the design files and production data used to build the REV1 badge which has been produced and distributed:
+https://github.com/Cisco-Offensive-Summit/badge-2024/tree/main/Altium
 
-#### The badger.becomingahacker.com server is only available during the Offensive Summit!!!
+#### Notes:
+* The OS2024 badge will already have circuit python + OS2024 apps loaded when you receive it!!!   
+* The badger.becomingahacker.com server is only available during the Offensive Summit; the name and schedule application(s) will not be able to connect to the server at badger.becomingahacker.com before or after the summit!!!    
+ 
 
-#### The badger.becomingahacker.com website will not exist before or after the Offensive Summit!!! 
 
-#### The name and schedule application(s) will not be able to connect to the server at badger.becomingahacker.com before or after the summit!!!  
+
