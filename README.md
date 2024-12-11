@@ -2,10 +2,6 @@
 
 https://github.com/Cisco-Offensive-Summit/badge-2024/wiki
 
-#### Here is a .pdf file from the badger.becomingahacker.com website detailing how to assemble and program the 2024 badge:  
-
-https://github.com/Cisco-Offensive-Summit/badge-2024/blob/main/website/Badge_info.pdf
-
 #### Here are details for how to install and test the Circuitpython environment on the 2024 badge:  
 
 https://github.com/Cisco-Offensive-Summit/badge-2024/tree/main/firmware
@@ -22,8 +18,14 @@ https://github.com/Cisco-Offensive-Summit/badge-2024/blob/main/website/Badge_Rec
 
 https://github.com/Cisco-Offensive-Summit/badge-2024/tree/main/Arduino
 
-#### Here are the design files and production data used to build the REV1 badge:
-https://github.com/Cisco-Offensive-Summit/badge-2024/tree/main/Altium
+#### Here are the design files and production data used to build the REV1 badge:  
+
+https://github.com/Cisco-Offensive-Summit/badge-2024/tree/main/Altium  
+
+#### Here is a .pdf file from the badger.becomingahacker.com website detailing how to assemble and program the 2024 badge:  
+
+https://github.com/Cisco-Offensive-Summit/badge-2024/blob/main/Altium/REV1/Project%20Outputs%20for%202024-Badge-Altium-Project-REV1/2024-Badge-Final-Assembly.pdf
+see also https://github.com/Cisco-Offensive-Summit/badge-2024/blob/main/website/Badge_info.pdf  
 
 #### Notes:
 * The OS2024 badge will already have circuit python + OS2024 apps loaded when you receive it!!!   
