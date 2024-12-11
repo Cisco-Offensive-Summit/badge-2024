@@ -30,9 +30,9 @@ Electronic Paper Display - ePaper 2" EPD, Aurora, B/W, eTC
 	https://boevxusa.com/product/e2200cs021/  
 	https://www.utmel.com/productdetail/pervasivedisplays-e2200cs021-4368887  
 	
-Alternate Electronic Paper Display - ePaper 1.44", Aurora, B/W, eTC
-	(fits our pinout, slightly smaller but in production and 2324 stock as of 12-11-2024)
- 	The specifications for the pinout and cable length match; this has not been tested!!
-	https://www.mouser.com/ProductDetail/Pervasive-Displays/E2144CS021?qs=sPbYRqrBIVm2B3TwESjH5A%3D%3D
+Alternate Electronic Paper Display - ePaper 1.44", Aurora, B/W, eTC  
+	(fits our pinout, slightly smaller but in production and 2324 stock as of 12-11-2024)  
+ 	The specifications for the pinout and cable length match; this has not been tested!!  
+	https://www.mouser.com/ProductDetail/Pervasive-Displays/E2144CS021?qs=sPbYRqrBIVm2B3TwESjH5A%3D%3D  
  
  	
