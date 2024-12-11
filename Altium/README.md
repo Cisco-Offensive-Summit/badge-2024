@@ -10,3 +10,7 @@
 ### Distributor links for the EPD screen, TFT screen, and Micro Lipo Module:  
 
    * [modules-screens-distributor-links.md](https://github.com/Cisco-Offensive-Summit/badge-2024/blob/main/Altium/modules-screens-distributor-links.md)
+
+### Research for plastic standoffs:
+
+   * [plastic-standoff readme.md](https://github.com/Cisco-Offensive-Summit/badge-2024/blob/main/Altium/REV1/plastic-standoff/readme.md)
