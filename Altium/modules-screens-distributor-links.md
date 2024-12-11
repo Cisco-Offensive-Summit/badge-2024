@@ -21,8 +21,8 @@ Micro Lipo USB C Module (P5):
 	https://picclick.it/Modulo-Display-LCD-TFT-144-128X128-65K-SPI-296311976939.html  
 
 
-Electronic Paper Displays - ePaper 2" EPD, Aurora, B/W, eTC  
-	EOL notice:  https://www.mouser.com/PCN/Pervasive_Displays_2Q013_F03_03_Product_End_Of_Life_Notice_E2200CS02x__1016.pdf  
+Electronic Paper Display - ePaper 2" EPD, Aurora, B/W, eTC  
+	EOL notice: https://www.mouser.com/PCN/Pervasive_Displays_2Q013_F03_03_Product_End_Of_Life_Notice_E2200CS02x__1016.pdf  
 	https://www.ariat-tech.com/parts/pervasive-displays/E2200CS021  
 	https://www.heisener.com/ProductDetail/E2200CS021  
 	https://ea-chip.com/productdetail/E2200CS021  
@@ -30,3 +30,9 @@ Electronic Paper Displays - ePaper 2" EPD, Aurora, B/W, eTC
 	https://boevxusa.com/product/e2200cs021/  
 	https://www.utmel.com/productdetail/pervasivedisplays-e2200cs021-4368887  
 	
+Alternate Electronic Paper Display - ePaper 1.44", Aurora, B/W, eTC
+	(fits our pinout, slightly smaller but in production and 2324 stock as of 12-11-2024)
+ 	The specifications for the pinout and cable length match; this has not been tested!!
+	https://www.mouser.com/ProductDetail/Pervasive-Displays/E2144CS021?qs=sPbYRqrBIVm2B3TwESjH5A%3D%3D
+ 
+ 	
