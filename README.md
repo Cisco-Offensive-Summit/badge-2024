@@ -1,4 +1,4 @@
-#### Here is the WIKI for some basis setup and I/O stuff:
+#### Here is the WIKI for basic setup and I/O:
 
 https://github.com/Cisco-Offensive-Summit/badge-2024/wiki
 
