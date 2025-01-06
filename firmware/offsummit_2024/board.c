@@ -113,13 +113,4 @@ void board_init(void) {
     // display_init();
 }
 
-bool espressif_board_reset_pin_number(gpio_num_t pin_number) {
-    // Override specific pins for motor test
-    if (pin_number == 1 || pin_number == 2 || pin_number == 6 || pin_number == 14) {
-        return true;
-    }
-    return false;
-}
-
-
 // Use the MP_WEAK supervisor/shared/board.c versions of routines not defined here.
