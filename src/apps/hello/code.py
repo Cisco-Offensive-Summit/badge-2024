@@ -13,7 +13,7 @@ import wifi
 from adafruit_display_text.label import Label
 from sys import exit
 from time import sleep
-from badge.colors import *
+from badge.constants import *
 from badge.neopixels import NP
 from badge.screens import LCD, EPD
 from badge.screens import clear_lcd_screen

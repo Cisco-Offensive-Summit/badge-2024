@@ -1,27 +1,37 @@
-import displayio, asyncio, json, sys
-import microcontroller, supervisor
-from displayio import Group, TileGrid
-from os import listdir
-from storage import disable_usb_drive, remount
 import adafruit_imageload
+import asyncio
+import displayio
+import json
+import microcontroller
+import supervisor
+import sys
 from adafruit_bitmap_font.bitmap_font import load_font
+from adafruit_display_text import label
 from adafruit_display_text.scrolling_label import ScrollingLabel
+from displayio import Group
+from displayio import TileGrid
+from os import listdir
+from storage import disable_usb_drive
+from storage import remount
 
-from badge.app import App
-from badge.fileops import is_dir, is_file
-from badge.colors import SITE_BLUE
-from badge.screens import EPD
-from badge.screens import LCD
-from badge.screens import clear_lcd_screen
-from badge.screens import clear_epd_screen
-from badge.screens import epd_round_button
 import badge.buttons
+import badge.events as evt
+from badge.app import App
 from badge.buttons import a_pressed as ap
 from badge.buttons import d_pressed as dp
-import badge.events as evt
+from badge.constants import LCD_WIDTH
+from badge.constants import LCD_HEIGHT
+from badge.constants import EPD_WIDTH
+from badge.constants import EPD_HEIGHT
+from badge.constants import SITE_BLUE
 from badge.events import on
+from badge.fileops import is_dir, is_file
 from badge.log import info, log
 from badge.neopixels import set_neopixel, set_neopixels
+from badge.screens import EPD
+from badge.screens import LCD
+from badge.screens import clear_screen
+from badge.screens import epd_round_button
 from badge.ziplist import ziplist
 
 #################### Globals ###############
@@ -38,10 +48,6 @@ APPLIST = [] # Populate at run()
 OFF, DIM, BRIGHT = (0, 0, 0), (0, 25, 25), (0, 106, 66)
 NEO_STATES = [OFF, DIM, BRIGHT]
 
-EPD_DISP_H = EPD.height
-EPD_DISP_W = EPD.width
-LCD_DISP_H = LCD.height
-LCD_DISP_W = LCD.width
 ICON_H = 76
 ICON_W = 128
 FONT = load_font('font/font.pcf')
@@ -85,7 +91,7 @@ def display_lcd_app_icon(app: App):
   meta = app.metadata_json
   text = f"{meta['app_name']}   Created By: {meta['author']}          "
 
-  clear_lcd_screen(LCD.root_group)
+  clear_screen(LCD)
 
   group = Group()  
   background = displayio.Bitmap(128, 128, 1)
@@ -95,9 +101,9 @@ def display_lcd_app_icon(app: App):
   tile_grid1 = TileGrid(background, pixel_shader=palette1)
   tile_grid2 = TileGrid(bitmap, pixel_shader=palette2)
   label = ScrollingLabel(font=FONT, text=text, max_characters=13, animate_time=0.2)
-  y = LCD_DISP_H-((LCD_DISP_H-ICON_H)//2)
+  y = LCD_HEIGHT-((LCD_HEIGHT-ICON_H)//2)
   label.x = 5
-  label.y = LCD_DISP_H-((LCD_DISP_H-ICON_H)//2)
+  label.y = LCD_HEIGHT-((LCD_HEIGHT-ICON_H)//2)
   LCD.root_group = group
   group.append(tile_grid1)
   group.append(tile_grid2)
@@ -112,15 +118,15 @@ def draw_epd_launch_screen():
   HEADER = "Select An App"
   scale = 2
   button_rad = 5
-  SUMMIT_x = (EPD_DISP_W //2) - (EPD._font.width(SUMMIT) // 2)
+  SUMMIT_x = (EPD.width //2) - (EPD._font.width(SUMMIT) // 2)
   SUMMIT_y = 1
-  HEADER_x = (EPD_DISP_W //2) - ((EPD._font.width(HEADER) * scale) // 2)
-  HEADER_y = (EPD_DISP_H //2) - ((EPD._font.font_height * scale) // 2)
+  HEADER_x = (EPD.width //2) - ((EPD._font.width(HEADER) * scale) // 2)
+  HEADER_y = (EPD.height //2) - ((EPD._font.font_height * scale) // 2)
   B1_x = 5 + button_rad
-  B1_y = EPD_DISP_H - 5 - button_rad - EPD._font.font_height
-  B2_x = EPD_DISP_W - 5 - button_rad - EPD._font.width(B2)
-  B2_y = EPD_DISP_H - 5 - button_rad - EPD._font.font_height
-  clear_epd_screen()
+  B1_y = EPD_HEIGHT - 5 - button_rad - EPD._font.font_height
+  B2_x = EPD_WIDTH - 5 - button_rad - EPD._font.width(B2)
+  B2_y = EPD_HEIGHT - 5 - button_rad - EPD._font.font_height
+  clear_screen(EPD)
   EPD.text(SUMMIT,SUMMIT_x,SUMMIT_y,1,size=1)
   EPD.text(HEADER,HEADER_x,HEADER_y,1,size=scale)
   epd_round_button(B1, B1_x, B1_y, 5)
