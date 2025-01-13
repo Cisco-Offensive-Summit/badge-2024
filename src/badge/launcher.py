@@ -6,23 +6,22 @@ import microcontroller
 import supervisor
 import sys
 from adafruit_bitmap_font.bitmap_font import load_font
-from adafruit_display_text import label
+from adafruit_display_text.label import Label
 from adafruit_display_text.scrolling_label import ScrollingLabel
 from displayio import Group
 from displayio import TileGrid
 from os import listdir
 from storage import disable_usb_drive
 from storage import remount
+from terminalio import FONT
 
 import badge.buttons
 import badge.events as evt
 from badge.app import App
 from badge.buttons import a_pressed as ap
 from badge.buttons import d_pressed as dp
-from badge.constants import LCD_WIDTH
-from badge.constants import LCD_HEIGHT
-from badge.constants import EPD_WIDTH
-from badge.constants import EPD_HEIGHT
+from badge.constants import BB_HEIGHT
+from badge.constants import BB_WIDTH
 from badge.constants import SITE_BLUE
 from badge.events import on
 from badge.fileops import is_dir, is_file
@@ -30,8 +29,9 @@ from badge.log import info, log
 from badge.neopixels import set_neopixel, set_neopixels
 from badge.screens import EPD
 from badge.screens import LCD
+from badge.screens import center_text
 from badge.screens import clear_screen
-from badge.screens import epd_round_button
+from badge.screens import round_button
 from badge.ziplist import ziplist
 
 #################### Globals ###############
@@ -50,7 +50,7 @@ NEO_STATES = [OFF, DIM, BRIGHT]
 
 ICON_H = 76
 ICON_W = 128
-FONT = load_font('font/font.pcf')
+SCROLL_FONT = load_font('font/font.pcf')
 
 #################### Apps ##################
 
@@ -100,10 +100,10 @@ def display_lcd_app_icon(app: App):
   bitmap, palette2 = adafruit_imageload.load(icon,bitmap=displayio.Bitmap,palette=displayio.Palette)
   tile_grid1 = TileGrid(background, pixel_shader=palette1)
   tile_grid2 = TileGrid(bitmap, pixel_shader=palette2)
-  label = ScrollingLabel(font=FONT, text=text, max_characters=13, animate_time=0.2)
-  y = LCD_HEIGHT-((LCD_HEIGHT-ICON_H)//2)
+  label = ScrollingLabel(font=SCROLL_FONT, text=text, max_characters=13, animate_time=0.2)
+  y = LCD.height-((LCD.height-ICON_H)//2)
   label.x = 5
-  label.y = LCD_HEIGHT-((LCD_HEIGHT-ICON_H)//2)
+  label.y = LCD.height-((LCD.height-ICON_H)//2)
   LCD.root_group = group
   group.append(tile_grid1)
   group.append(tile_grid2)
@@ -112,26 +112,33 @@ def display_lcd_app_icon(app: App):
   return label
 
 def draw_epd_launch_screen():
-  B1 = "S4 Next App"
-  B2 = "S7 Launch"
-  SUMMIT = "Offensive Summit 2024"
+  B1 = "S4 Next"
+  B2 = "S7 Run"
+  SUMMIT = "Offensive Summit"
   HEADER = "Select An App"
-  scale = 2
+  scale = 1
   button_rad = 5
-  SUMMIT_x = (EPD.width //2) - (EPD._font.width(SUMMIT) // 2)
-  SUMMIT_y = 1
-  HEADER_x = (EPD.width //2) - ((EPD._font.width(HEADER) * scale) // 2)
-  HEADER_y = (EPD.height //2) - ((EPD._font.font_height * scale) // 2)
-  B1_x = 5 + button_rad
-  B1_y = EPD_HEIGHT - 5 - button_rad - EPD._font.font_height
-  B2_x = EPD_WIDTH - 5 - button_rad - EPD._font.width(B2)
-  B2_y = EPD_HEIGHT - 5 - button_rad - EPD._font.font_height
+  splash = Group()
+
+  SUMMIT_lb = center_text(EPD, SUMMIT)
+  HEADER_lb = center_text(EPD, HEADER, scale=scale)
+  HEADER_lb.y = (EPD.height //2) - ((HEADER_lb.bounding_box[BB_HEIGHT] * scale) // 2)
+
+  B1_lb = Label(font=FONT,text=B1)
+  B1_x = button_rad
+  B1_y = EPD.height - button_rad - ((B1_lb.bounding_box[BB_HEIGHT]*scale)//2)
+
+  B2_lb = Label(font=FONT,text=B2)
+  B2_x = EPD.width - button_rad - B2_lb.bounding_box[BB_WIDTH]
+  B2_y = EPD.height - button_rad - ((B2_lb.bounding_box[BB_HEIGHT]*scale)//2)
+
   clear_screen(EPD)
-  EPD.text(SUMMIT,SUMMIT_x,SUMMIT_y,1,size=1)
-  EPD.text(HEADER,HEADER_x,HEADER_y,1,size=scale)
-  epd_round_button(B1, B1_x, B1_y, 5)
-  epd_round_button(B2, B2_x, B2_y, 5)
-  EPD.draw()
+  splash.append(SUMMIT_lb)
+  splash.append(HEADER_lb)
+  splash.append(round_button(B1_lb, B1_x, B1_y, 5))
+  splash.append(round_button(B2_lb, B2_x, B2_y, 5))
+  EPD.root_group = splash
+  EPD.refresh()
 
 #################### Launcher ##############
 
