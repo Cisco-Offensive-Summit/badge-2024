@@ -13,6 +13,8 @@ from traceback import format_exception, print_exception
 
 from badge.constants import BLACK
 from badge.constants import WHITE
+from badge.constants import BB_WIDTH
+from badge.constants import BB_HEIGHT
 from badge.constants import EPD_WIDTH
 from badge.constants import EPD_HEIGHT
 from badge.constants import LCD_WIDTH
@@ -82,12 +84,9 @@ def wrap_message(screen, message, font=FONT, x=0, y=None, scale=1):
   for word in words[1:]:
     check_width += " " + word
     lb.text = check_width
-    print(lb.bounding_box[BB_WIDTH]*scale)
     if not (lb.bounding_box[BB_WIDTH]*scale) > screen.width:
-      print("TRUE")
       will_fit += " " + word
     else:
-      print("FALSE")
       will_fit += "\n" + word
       check_width = will_fit
 
@@ -110,7 +109,7 @@ def wrap_message(screen, message, font=FONT, x=0, y=None, scale=1):
 #   splash = round_button(lb, 10, 15, 5)
 #   LCD.root_group = splash
 
-def round_button(label, x, y, rad, color=WHITE, fill=None ,stroke=1):
+def round_button(label:Label, x, y, rad, color=WHITE, fill=None ,stroke=1):
   scale = label.scale
   label.color = color
   label.x = x

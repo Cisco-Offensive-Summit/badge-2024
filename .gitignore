@@ -3,3 +3,5 @@ filesystem.c
 .DS_Store
 __Previews
 __pycache__/
+*.ipynb
+.ipynb*
