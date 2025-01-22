@@ -21,7 +21,7 @@ from badge.neopixels import set_neopixel
 from badge.screens import EPD
 from badge.screens import epd_print_exception
 from badge.screens import round_button
-from badge.screens import center_text
+from badge.screens import center_text_x_plane
 
 Curcolor = 0
 Pattern = [0]
@@ -88,7 +88,7 @@ def run():
     asyncio.run(main())
 
 def text(text, scale=1, y=0):
-    lb = center_text(EPD, text, scale=scale, y=y)
+    lb = center_text_x_plane(EPD, text, scale=scale, y=y)
     EPD.root_group.append(lb)
 
 def background():

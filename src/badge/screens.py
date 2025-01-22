@@ -5,9 +5,12 @@ import framebufferio
 from adafruit_st7735r import ST7735R
 from adafruit_display_shapes.roundrect import RoundRect
 from adafruit_display_text.label import Label
+from displayio import Bitmap
 from displayio import FourWire
 from displayio import Group
+from displayio import Palette
 from displayio import release_displays
+from displayio import TileGrid
 from terminalio import FONT
 from traceback import format_exception, print_exception
 
@@ -108,7 +111,7 @@ def wrap_message(screen, message, font=FONT, x=0, y=None, scale=1):
 #   lb = Label(font=FONT,text="s4 next")
 #   splash = round_button(lb, 10, 15, 5)
 #   LCD.root_group = splash
-
+#
 def round_button(label:Label, x, y, rad, color=WHITE, fill=None ,stroke=1):
   scale = label.scale
   label.color = color
@@ -131,6 +134,7 @@ def round_button(label:Label, x, y, rad, color=WHITE, fill=None ,stroke=1):
 
 ###############################################################################
 # This function simply will print exceptions to the EPD screen.
+#
 def epd_print_exception(e:Exception):
   print_exception(e)
   lb = wrap_message(EPD,format_exception(e, limit=2)[0])
@@ -138,22 +142,91 @@ def epd_print_exception(e:Exception):
   EPD.refresh()
 
 ###############################################################################
-# This function will return a basic Label object with the x set such that the
+# This function will return a basic Label object with the X set such that the
 #   text will be centered in the screen that is passed to the function. Optionally 
 #   the Y can also be passed to this function and it will be set also.  If left 
 #   empty the Y will need to be set after the Label is returned.
-#   of the screen
-def center_text(screen, txt, y=None, scale=1, color=WHITE):
-    lb = Label(font=FONT, text=txt, scale=scale, color=color)
-    lb.x = (screen.width // 2) - ((lb.bounding_box[BB_WIDTH] * scale) // 2)
-    if y:
-      lb.y = y
-    else:
-      lb.y = (lb.bounding_box[BB_HEIGHT] * scale) //2
+#
+# screen: The screen object. Must be either LCD or EPD
+# text: The text to be centered on the screen
+# y: The starting Y position for the text
+# scale: This is the scaling of the font.
+# color: 24 bit color. Either hex or int
+#
+def center_text_x_plane(screen, text, y=None, scale=1, color=WHITE):
+  lb = Label(font=FONT, text=text, scale=scale, color=color)
+  lb.x = (screen.width // 2) - ((lb.bounding_box[BB_WIDTH] * scale) // 2)
+  if y:
+    lb.y = y
+  else:
+    lb.y = (lb.bounding_box[BB_HEIGHT] * scale) //2
 
-    return lb
-
+  return lb
 
 ###############################################################################
+# This function will return a basic Label object with the Y set such that the
+#   text will be centered in the screen that is passed to the function. Optionally 
+#   the X can also be passed to this function and it will be set also.  If left 
+#   empty the X will need to be set after the Label is returned.
+#   of the screen
+#
+# screen: The screen object. Must be either LCD or EPD
+# text: The text to be centered on the screen
+# x: The starting X position for the text
+# scale: This is the scaling of the font.
+# color: 24 bit color. Either hex or int
+#
+def center_text_y_plane(screen, text, x=None, scale=1, color=WHITE):
+  lb = Label(font=FONT, text=text, scale=scale, color=color)
+  glyph_height = lb._font.get_bounding_box()[1]*scale
+  lb.y = (glyph_height //2) + (screen.height // 2) - (lb.bounding_box[BB_HEIGHT]*scale // 2)
+  if x:
+    lb.x = x
+
+  return lb
+
+###############################################################################
+# This function will take a label that it is passed and set the Y starting point
+#   for the text reletive to the size of the screen. The scale for the text must
+#   be set prior to calling this function.                                                                                                                
+#
+# screen: The screen object. Must be either LCD or EPD
+# lb: label containing the text and scale.
+#
+def center_label_x_plane(screen, lb):
+  lb.x = (screen.width // 2) - ((lb.bounding_box[BB_WIDTH] * lb.scale) // 2)
+
+###############################################################################
+# This function will take a label that it is passed and set the Y starting point
+#   for the text reletive to the size of the screen. The scale for the text must
+#   be set prior to calling this function.
+#
+# screen: The screen object. Must be either LCD or EPD
+# lb: label containing the text and scale.
+#
+def center_label_y_plane(screen, lb):
+  glyph_height = lb._font.get_bounding_box()[1]*lb.scale
+  lb.y = (glyph_height //2) + (screen.height // 2) - (lb.bounding_box[BB_HEIGHT]*lb.scale // 2)
+
+###############################################################################
+# This function will set the background color of the screen that is passed to 
+#   it. This must be call first before anything else is added to the screen. If
+#   not then the background color will overwrite anyother groups set for that 
+#   screen.  You should note that the LCD screen will draw the color automaticly,
+#   while the EPD screen will need EPD.refresh() to draw the screen.
+#
+# screen: Screen to set a backround color on. Either LCD or EPD
+# color: 24 bit color. Either hex or int
+def set_background(screen, color):
+  group = Group()
+  background = Bitmap(screen.width, screen.height, 1)
+  palette1 = Palette(1)
+  palette1[0] = color                                                                                                                                     
+  tile_grid1 = TileGrid(background, pixel_shader=palette1)
+  group.append(tile_grid1)
+  screen.root_group = group
+
+###############################################################################
+
 if not (LCD and EPD):
   LCD, EPD = _init_screens()
