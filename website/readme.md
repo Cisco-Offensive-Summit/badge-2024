@@ -30,7 +30,9 @@ https://github.com/Cisco-Offensive-Summit/badge-2024/blob/main/website/Badge_Rec
 
 https://github.com/Cisco-Offensive-Summit/badge-2024/tree/main/Arduino
 
+#### Here is a tutorial for interacting with the screen on your badge.
 
+https://github.com/Cisco-Offensive-Summit/badge-2024/blob/main/website/Tutorial_LCD_LED.pdf
 
 
 
