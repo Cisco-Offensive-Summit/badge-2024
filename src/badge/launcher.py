@@ -29,7 +29,7 @@ from badge.log import info, log
 from badge.neopixels import set_neopixel, set_neopixels
 from badge.screens import EPD
 from badge.screens import LCD
-from badge.screens import center_text
+from badge.screens import center_text_x_plane
 from badge.screens import clear_screen
 from badge.screens import round_button
 from badge.ziplist import ziplist
@@ -120,8 +120,8 @@ def draw_epd_launch_screen():
   button_rad = 5
   splash = Group()
 
-  SUMMIT_lb = center_text(EPD, SUMMIT)
-  HEADER_lb = center_text(EPD, HEADER, scale=scale)
+  SUMMIT_lb = center_text_x_plane(EPD, SUMMIT)
+  HEADER_lb = center_text_x_plane(EPD, HEADER, scale=scale)
   HEADER_lb.y = (EPD.height //2) - ((HEADER_lb.bounding_box[BB_HEIGHT] * scale) // 2)
 
   B1_lb = Label(font=FONT,text=B1)
