@@ -1,31 +1,11 @@
 import sys, pathlib
 
 filesystem_str_start = """
-/*
- * This file is part of the MicroPython project, http://micropython.org/
- *
- * The MIT License (MIT)
- *
- * Copyright (c) 2017 Scott Shawcroft for Adafruit Industries
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
+// This file is part of the CircuitPython project: https://circuitpython.org
+//
+// SPDX-FileCopyrightText: Copyright (c) 2017 Scott Shawcroft for Adafruit Industries
+//
+// SPDX-License-Identifier: MIT
 
 #include "supervisor/filesystem.h"
 
@@ -67,29 +47,19 @@ inline void filesystem_tick(void) {
 }
 
 
+__attribute__((unused)) // this function MAY be unused
 static void make_empty_file(FATFS *fatfs, const char *path) {
     FIL fp;
     f_open(fatfs, &fp, path, FA_WRITE | FA_CREATE_ALWAYS);
     f_close(&fp);
 }
 
-/*
-static void make_sample_code_file(FATFS *fatfs) {
-    #if CIRCUITPY_FULL_BUILD
-    FIL fs;
-    UINT char_written = 0;
-    const byte buffer[] = "print(\"Hello World!\")\n";
-    // Create or modify existing code.py file
-    f_open(fatfs, &fs, "/code.py", FA_WRITE | FA_CREATE_ALWAYS);
-    f_write(&fs, buffer, sizeof(buffer) - 1, &char_written);
-    f_close(&fs);
-    #else
-    make_empty_file(fatfs, "/code.py");
-    #endif
-}
-*/
+#if CIRCUITPY_FULL_BUILD
+#define MAKE_FILE_WITH_OPTIONAL_CONTENTS(fatfs, filename, string_literal) do { \
+        const byte buffer[] = string_literal; \
+        make_file_with_contents(fatfs, filename, buffer, sizeof(buffer) - 1); \
+} while (0)
 
-// Offsummit add file
 static void make_file_with_contents(FATFS *fatfs, const char *filename, const byte *content, UINT size) {
     FIL fs;
     // Create or modify existing code.py file
@@ -97,7 +67,10 @@ static void make_file_with_contents(FATFS *fatfs, const char *filename, const by
     f_write(&fs, content, size, &size);
     f_close(&fs);
 }
-
+#else
+#define MAKE_FILE_WITH_OPTIONAL_CONTENTS(fatfs, filename, string_literal) \
+    make_empty_file(fatfs, filename)
+#endif
 """
 
 filesystem_str_post_func = """
@@ -138,19 +111,35 @@ bool filesystem_init(bool create_allowed, bool force_create) {
             return false;
         }
 
+        #if CIRCUITPY_USB_DEVICE
         // inhibit file indexing on MacOS
         res = f_mkdir(&vfs_fat->fatfs, "/.fseventsd");
         if (res != FR_OK) {
             return false;
         }
-        make_empty_file(&vfs_fat->fatfs, "/.metadata_never_index");
-        make_empty_file(&vfs_fat->fatfs, "/.Trashes");
         make_empty_file(&vfs_fat->fatfs, "/.fseventsd/no_log");
+        make_empty_file(&vfs_fat->fatfs, "/.metadata_never_index");
+
+        // Prevent storing trash on all OSes.
+        make_empty_file(&vfs_fat->fatfs, "/.Trashes"); // MacOS
+        make_empty_file(&vfs_fat->fatfs, "/.Trash-1000"); // Linux, XDG trash spec:
+        // https://specifications.freedesktop.org/trash-spec/trashspec-latest.html
+        #endif
+
+        #if CIRCUITPY_SDCARDIO || CIRCUITPY_SDIOIO
+        res = f_mkdir(&vfs_fat->fatfs, "/sd");
+        #if CIRCUITPY_FULL_BUILD
+        MAKE_FILE_WITH_OPTIONAL_CONTENTS(&vfs_fat->fatfs, "/sd/placeholder.txt",
+            "SD cards mounted at /sd will hide this file from Python."
+            " SD cards are not visible via USB CIRCUITPY.\n");
+        #endif
+        #endif
+
         #if CIRCUITPY_OS_GETENV
         make_empty_file(&vfs_fat->fatfs, "/settings.toml");
         #endif
         // make a sample code.py file
-        //make_sample_code_file(&vfs_fat->fatfs);
+        //MAKE_FILE_WITH_OPTIONAL_CONTENTS(&vfs_fat->fatfs, "/code.py", "print(\"Hello World!\")\n");
 
 """
 
@@ -164,7 +153,6 @@ filesystem_str_post_dir = """
 """
 
 filesystem_str_final = """
-
         // and ensure everything is flushed
         supervisor_flash_flush();
     } else if (res != FR_OK) {
@@ -237,11 +225,64 @@ bool filesystem_present(void) {
     return _mp_vfs.len > 0;
 }
 
-FATFS *filesystem_circuitpy(void) {
+fs_user_mount_t *filesystem_circuitpy(void) {
     if (!filesystem_present()) {
         return NULL;
     }
-    return &_internal_vfs.fatfs;
+    return &_internal_vfs;
+}
+
+fs_user_mount_t *filesystem_for_path(const char *path_in, const char **path_under_mount) {
+    mp_vfs_mount_t *vfs = mp_vfs_lookup_path(path_in, path_under_mount);
+    if (vfs == MP_VFS_NONE) {
+        return NULL;
+    }
+    fs_user_mount_t *fs_mount;
+    *path_under_mount = path_in;
+    if (vfs == MP_VFS_ROOT) {
+        fs_mount = filesystem_circuitpy();
+    } else {
+        fs_mount = MP_OBJ_TO_PTR(vfs->obj);
+        // Check if the vfs name is one character long: it must be "/" in that case.
+        // If so don't remove the mount point name. We must use an absolute path
+        // because otherwise the path will be adjusted by os.getcwd() when it's looked up.
+        if (strlen(vfs->str) != 1) {
+            // Remove the mount point directory name, such as "/sd".
+            path_under_mount += strlen(vfs->str);
+        }
+    }
+    return fs_mount;
+}
+
+bool filesystem_native_fatfs(fs_user_mount_t *fs_mount) {
+    return fs_mount->base.type == &mp_fat_vfs_type && (fs_mount->blockdev.flags & MP_BLOCKDEV_FLAG_NATIVE) != 0;
+}
+
+bool filesystem_lock(fs_user_mount_t *fs_mount) {
+    if (fs_mount->lock_count == 0 && !blockdev_lock(fs_mount)) {
+        return false;
+    }
+    fs_mount->lock_count += 1;
+    return true;
+}
+
+void filesystem_unlock(fs_user_mount_t *fs_mount) {
+    fs_mount->lock_count -= 1;
+    if (fs_mount->lock_count == 0) {
+        blockdev_unlock(fs_mount);
+    }
+}
+
+bool blockdev_lock(fs_user_mount_t *fs_mount) {
+    if ((fs_mount->blockdev.flags & MP_BLOCKDEV_FLAG_LOCKED) != 0) {
+        return false;
+    }
+    fs_mount->blockdev.flags |= MP_BLOCKDEV_FLAG_LOCKED;
+    return true;
+}
+
+void blockdev_unlock(fs_user_mount_t *fs_mount) {
+    fs_mount->blockdev.flags &= ~MP_BLOCKDEV_FLAG_LOCKED;
 }
 """
 
@@ -295,6 +336,7 @@ def get_call_for_dir(p: str):
 
 def usage():
     print("py2fs.py DIRECTORY_TO_FS")
+    print("README.md and files that start with '_' are ignored")
     exit(1)
 
 def main(path: str):
