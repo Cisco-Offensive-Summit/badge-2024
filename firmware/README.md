@@ -10,9 +10,10 @@ Current version CircuitPython 8.2.10
     - Enable venv packages with `$ source esp-idf/export.sh`
 2. Press both Reset and Boot switches, Release Reset switch then shortly after Boot switch 
     - This is only necessary if you have a circuitpython firmware installed on the badge already.
-3. Run the following command
+3. Run the following commands:
+    - `ls /dev/cu.usbmodem*` to determine the device name, cu.usbmodem144101 in the example below
     - `esptool.py --chip esp32s3 --port /dev/cu.usbmodem144101 write_flash -z 0x0 firmware.bin`
-4. Restart the badge
+5. Restart the badge
     - You should see the REPL console on the oled display.
 
 ## Building firmware
