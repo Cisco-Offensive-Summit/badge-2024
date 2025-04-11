@@ -11,11 +11,6 @@ def set_neopixel(name: str, val):
     d = {"a": 0, "b": 1, "c": 2, "d": 3}
     NP[d[name.lower()]] = val
 
-def set_neopixel_brightness(name: str, val, brightness):
-    d = {"a": 0, "b": 1, "c": 2, "d": 3}
-    NP[d[name.lower()]]= val
-    NP[d[name.lower()]].brightness = brightness
-
 def set_neopixels(a=OFF, b=OFF, c=OFF, d=OFF):
     global NP    
 

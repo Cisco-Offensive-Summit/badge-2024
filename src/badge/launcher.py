@@ -26,7 +26,7 @@ from badge.constants import SITE_BLUE
 from badge.events import on
 from badge.fileops import is_dir, is_file
 from badge.log import info, log
-from badge.neopixels import set_neopixel, set_neopixels, set_neopixel_brightness
+from badge.neopixels import set_neopixel, set_neopixels
 from badge.screens import EPD
 from badge.screens import LCD
 from badge.screens import center_text_x_plane
@@ -130,16 +130,30 @@ class LauncherUI:
         clear_screen(LCD)
 
         group = Group()  
+        
         background = displayio.Bitmap(128, 128, 1)
         background_palette = displayio.Palette(1)
         background_palette[0] = SITE_BLUE
+
+        # Cache bitmaps, this will take a while
+        if self.cache_bmps:
+            self.bmps = { app.app_name : adafruit_imageload.load(app.icon_file,bitmap=displayio.Bitmap,palette=displayio.Palette) }
+            while True:
+                SELECTO.forward()
+                next_app, _ = SELECTO.current()
+                if next_app.app_name in self.bmps:
+                    break
+                else:
+                    self.bmps[next_app.app_name] = adafruit_imageload.load(next_app.icon_file,bitmap=displayio.Bitmap,palette=displayio.Palette)
+        
         bitmap, bitmap_palette = adafruit_imageload.load(icon,bitmap=displayio.Bitmap,palette=displayio.Palette)
         background_tile_grid = TileGrid(background, pixel_shader=background_palette)
         bitmap_tile_grid = TileGrid(bitmap, pixel_shader=bitmap_palette)
+        
         scroll_label = ScrollingLabel(font=SCROLL_FONT, text=text, max_characters=13, animate_time=0, current_index=0)
-        y = LCD.height-((LCD.height-ICON_H)//2)
         scroll_label.x = 5
         scroll_label.y = LCD.height-((LCD.height-ICON_H)//2)
+        
         group.append(background_tile_grid)
         group.append(bitmap_tile_grid)
         group.append(scroll_label)
@@ -180,9 +194,10 @@ class LauncherUI:
         app_name = app.app_name
         meta = app.metadata_json
 
-        bitmap, bitmap_palette = adafruit_imageload.load(icon,bitmap=displayio.Bitmap,palette=displayio.Palette)
-        self.bitmap_group.bitmap = bitmap
-        self.bitmap_group.pixel_shader = bitmap_palette
+        if self.cache_bmps:
+            self.bitmap_group.bitmap, self.bitmap_group.pixel_shader = self.bmps[app.app_name]
+        else:
+            self.bitmap_group.bitmap, self.bitmap_group.pixel_shader = adafruit_imageload.load(icon,bitmap=displayio.Bitmap,palette=displayio.Palette)
 
         scroll_text = f"{meta['app_name']}   Created By: {meta['author']}          "
         self.scroll_label_group.text = scroll_text
@@ -288,9 +303,8 @@ def run():
         sys.exit(0)
     # If continuing, set nvm back to blank and continue as usual
     clear_nvm()
-    LAUNCHER_UI = LauncherUI()
+    LAUNCHER_UI = LauncherUI(cache_bmps=False)
     asyncio.run(LAUNCHER_UI.run())
-    #asyncio.run(main())
 
 def run_at_boot():
     global BOOT_CONFIG_START
