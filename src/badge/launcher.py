@@ -26,7 +26,7 @@ from badge.constants import SITE_BLUE
 from badge.events import on
 from badge.fileops import is_dir, is_file
 from badge.log import info, log
-from badge.neopixels import set_neopixel, set_neopixels
+from badge.neopixels import set_neopixel, set_neopixels, set_neopixel_brightness
 from badge.screens import EPD
 from badge.screens import LCD
 from badge.screens import center_text_x_plane
@@ -45,102 +45,16 @@ APPS_DIR = "/apps"
 APPLIST = [] # Populate at run()
 
 ### UI ###
-OFF, DIM, BRIGHT = (0, 0, 0), (0, 25, 25), (0, 106, 66)
-NEO_STATES = [OFF, DIM, BRIGHT]
-
 ICON_H = 76
 ICON_W = 128
 SCROLL_FONT = load_font('font/font.pcf')
 
-#################### Apps ##################
+OFF, DIM, BRIGHT = (0, 0, 0), (0, 25, 25), (0, 106, 66)
+NEO_STATES = [OFF, DIM, BRIGHT]
 
-def get_app_list():
-    entries = list()
-    if not is_dir(APPS_DIR):
-        log("APPS_DIR not directory")
-        return entries
-    for e in listdir(APPS_DIR):
-        # Hide an app by renaming it's directory to start with '_'
-        # XXX: hack for dev
-        if e.startswith("_"):
-            continue
-        app_path = f"{APPS_DIR}/{e}"
-        if is_dir(app_path):
-            app = App(app_path)
-            entries.append(app)
-    return entries
+LAUNCHER_UI = None # Populated at run()
 
-#################### UI ####################
-
-def get_neo_update_vals(pattern):
-    ret = [NEO_STATES[i] for i in pattern]
-    return ret
-
-def indicators():
-    i = 0
-    while True:
-        base = (i // 4) % 2
-        val = [base] * 4
-        val[i%4] = base + 1
-        yield tuple(val)
-        i += 1
-
-def display_lcd_app_icon(app: App):
-  icon = app.icon_file
-  app_name = app.app_name
-  meta = app.metadata_json
-  text = f"{meta['app_name']}   Created By: {meta['author']}          "
-
-  clear_screen(LCD)
-
-  group = Group()  
-  background = displayio.Bitmap(128, 128, 1)
-  palette1 = displayio.Palette(1)
-  palette1[0] = SITE_BLUE
-  bitmap, palette2 = adafruit_imageload.load(icon,bitmap=displayio.Bitmap,palette=displayio.Palette)
-  tile_grid1 = TileGrid(background, pixel_shader=palette1)
-  tile_grid2 = TileGrid(bitmap, pixel_shader=palette2)
-  label = ScrollingLabel(font=SCROLL_FONT, text=text, max_characters=13, animate_time=0.2)
-  y = LCD.height-((LCD.height-ICON_H)//2)
-  label.x = 5
-  label.y = LCD.height-((LCD.height-ICON_H)//2)
-  LCD.root_group = group
-  group.append(tile_grid1)
-  group.append(tile_grid2)
-  group.append(label)
-
-  return label
-
-def draw_epd_launch_screen():
-  B1 = "S4 Next"
-  B2 = "S7 Run"
-  SUMMIT = "Offensive Summit"
-  HEADER = "Select An App"
-  scale = 1
-  button_rad = 5
-  splash = Group()
-
-  SUMMIT_lb = center_text_x_plane(EPD, SUMMIT)
-  HEADER_lb = center_text_x_plane(EPD, HEADER, scale=scale)
-  HEADER_lb.y = (EPD.height //2) - ((HEADER_lb.bounding_box[BB_HEIGHT] * scale) // 2)
-
-  B1_lb = Label(font=FONT,text=B1)
-  B1_x = button_rad
-  B1_y = EPD.height - button_rad - ((B1_lb.bounding_box[BB_HEIGHT]*scale)//2)
-
-  B2_lb = Label(font=FONT,text=B2)
-  B2_x = EPD.width - button_rad - B2_lb.bounding_box[BB_WIDTH]
-  B2_y = EPD.height - button_rad - ((B2_lb.bounding_box[BB_HEIGHT]*scale)//2)
-
-  clear_screen(EPD)
-  splash.append(SUMMIT_lb)
-  splash.append(HEADER_lb)
-  splash.append(round_button(B1_lb, B1_x, B1_y, 5))
-  splash.append(round_button(B2_lb, B2_x, B2_y, 5))
-  EPD.root_group = splash
-  EPD.refresh()
-
-#################### Launcher ##############
+############### Button Events ##############
 
 @on(evt.BTN_A_PRESSED)
 def choose_next_app(event):
@@ -152,6 +66,7 @@ def choose_next_app(event):
 
 @on(evt.BTN_A_RELEASED)
 def a_released(event):
+    global LAUNCHER_UI
     # turn it off
     set_neopixel("a", 0)
     # advance to next app
@@ -159,9 +74,7 @@ def a_released(event):
     app, indicator = SELECTO.current()
     vals = get_neo_update_vals(indicator)
     set_neopixels(*vals)
-    label = display_lcd_app_icon(app)
-    while not ap() and not dp():
-      label.update()
+    LAUNCHER_UI.lcd_change_app(app)
 
 @on(evt.BTN_C_PRESSED)
 def c_pressed(event):
@@ -184,6 +97,145 @@ def d_released(event):
     entry = current[0]
     log("app_launching", entry.code_file, type(entry.code_file))
     launch_app(entry)
+
+############## Launcher UI #################
+
+class LauncherUI:
+
+    root_group: Group
+    bitmap_group: Group
+    scroll_label_group: Group
+    hold_label: int
+    cache_bmps: bool
+    bmps: {}
+
+    def __init__(self, cache_bmps=False):
+        self.cache_bmps = cache_bmps
+        # Select app
+        app, _ = SELECTO.current()
+
+        # Init LCD and EPD
+        self.root_group, self.bitmap_group, self.scroll_label_group = self.init_lcd(app)
+        LCD.root_group = self.root_group
+        self.hold_label = 0
+        self.init_epd()
+
+    def init_lcd(self, app: App):
+        """Create inital LCD display structure, with an initial app displayed"""
+        icon = app.icon_file
+        app_name = app.app_name
+        meta = app.metadata_json
+        text = f"{meta['app_name']}   Created By: {meta['author']}          "
+
+        clear_screen(LCD)
+
+        group = Group()  
+        background = displayio.Bitmap(128, 128, 1)
+        background_palette = displayio.Palette(1)
+        background_palette[0] = SITE_BLUE
+        bitmap, bitmap_palette = adafruit_imageload.load(icon,bitmap=displayio.Bitmap,palette=displayio.Palette)
+        background_tile_grid = TileGrid(background, pixel_shader=background_palette)
+        bitmap_tile_grid = TileGrid(bitmap, pixel_shader=bitmap_palette)
+        scroll_label = ScrollingLabel(font=SCROLL_FONT, text=text, max_characters=13, animate_time=0, current_index=0)
+        y = LCD.height-((LCD.height-ICON_H)//2)
+        scroll_label.x = 5
+        scroll_label.y = LCD.height-((LCD.height-ICON_H)//2)
+        group.append(background_tile_grid)
+        group.append(bitmap_tile_grid)
+        group.append(scroll_label)
+
+        return group, bitmap_tile_grid, scroll_label
+
+    def init_epd(self):
+        B1 = "S4 Next"
+        B2 = "S7 Run"
+        SUMMIT = "Offensive Summit"
+        HEADER = "Select An App"
+        scale = 1
+        button_rad = 5
+        splash = Group()
+
+        SUMMIT_lb = center_text_x_plane(EPD, SUMMIT)
+        HEADER_lb = center_text_x_plane(EPD, HEADER, scale=scale)
+        HEADER_lb.y = (EPD.height //2) - ((HEADER_lb.bounding_box[BB_HEIGHT] * scale) // 2)
+
+        B1_lb = Label(font=FONT,text=B1)
+        B1_x = button_rad
+        B1_y = EPD.height - button_rad - ((B1_lb.bounding_box[BB_HEIGHT]*scale)//2)
+
+        B2_lb = Label(font=FONT,text=B2)
+        B2_x = EPD.width - button_rad - B2_lb.bounding_box[BB_WIDTH]
+        B2_y = EPD.height - button_rad - ((B2_lb.bounding_box[BB_HEIGHT]*scale)//2)
+
+        clear_screen(EPD)
+        splash.append(SUMMIT_lb)
+        splash.append(HEADER_lb)
+        splash.append(round_button(B1_lb, B1_x, B1_y, 5))
+        splash.append(round_button(B2_lb, B2_x, B2_y, 5))
+        EPD.root_group = splash
+        EPD.refresh()
+
+    def lcd_change_app(self, app: APP):
+        icon = app.icon_file
+        app_name = app.app_name
+        meta = app.metadata_json
+
+        bitmap, bitmap_palette = adafruit_imageload.load(icon,bitmap=displayio.Bitmap,palette=displayio.Palette)
+        self.bitmap_group.bitmap = bitmap
+        self.bitmap_group.pixel_shader = bitmap_palette
+
+        scroll_text = f"{meta['app_name']}   Created By: {meta['author']}          "
+        self.scroll_label_group.text = scroll_text
+        self.scroll_label_group.current_index = 0
+        self.hold_label = 0
+
+    async def lcd_animate_label(self):
+        while True:
+            if self.hold_label < 5:
+                self.hold_label += 1
+            else:
+                self.scroll_label_group.update(force=True)
+            await asyncio.sleep(0.2)
+        
+    async def run(self):
+        button_tasks = badge.buttons.start_tasks(interval=0.05)
+        event_tasks = evt.start_tasks()
+        all_tasks = [asyncio.create_task(self.lcd_animate_label())] + button_tasks + event_tasks
+        await asyncio.gather(*all_tasks)
+
+
+################## NEOPIXELS ###############
+
+def get_neo_update_vals(pattern):
+    ret = [NEO_STATES[i] for i in pattern]
+    return ret
+
+def indicators():
+    i = 0
+    while True:
+        base = (i // 4) % 2
+        val = [base] * 4
+        val[i%4] = base + 1
+        yield tuple(val)
+        i += 1
+
+################## LAUNCHER ################
+
+def get_app_list():
+    entries = list()
+    if not is_dir(APPS_DIR):
+        log("APPS_DIR not directory")
+        return entries
+    for e in listdir(APPS_DIR):
+        # Hide an app by renaming it's directory to start with '_'
+        # XXX: hack for dev
+        if e.startswith("_"):
+            continue
+        app_path = f"{APPS_DIR}/{e}"
+        if is_dir(app_path):
+            app = App(app_path)
+            entries.append(app)
+    return entries
 
 def clear_nvm():
     nvm_len = len(microcontroller.nvm)
@@ -211,23 +263,8 @@ def launch_app(entry):
     supervisor.reload()
     sys.exit(0)
 
-async def main():
-    # log("main", APPLIST)
-    #render_main(APPLIST)
-    app,_ = SELECTO.current()
-    # info_task = asyncio.create_task(info())
-    button_tasks = badge.buttons.start_tasks(interval=0.05)
-    event_tasks = evt.start_tasks()
-    # all_tasks = [info_task, battery_task] + button_tasks + event_tasks
-    all_tasks = [] + button_tasks + event_tasks
-    label = display_lcd_app_icon(app)
-    draw_epd_launch_screen()
-    while not ap() and not dp():
-      label.update()
-    await asyncio.gather(*all_tasks)
-
 def run():
-    global SELECTO, APPLIST
+    global SELECTO, APPLIST, LAUNCHER_UI
     APPLIST = get_app_list()
 
     sel_entries = list(zip(APPLIST, indicators()))
@@ -251,7 +288,9 @@ def run():
         sys.exit(0)
     # If continuing, set nvm back to blank and continue as usual
     clear_nvm()
-    asyncio.run(main())
+    LAUNCHER_UI = LauncherUI()
+    asyncio.run(LAUNCHER_UI.run())
+    #asyncio.run(main())
 
 def run_at_boot():
     global BOOT_CONFIG_START
