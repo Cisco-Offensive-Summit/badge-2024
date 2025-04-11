@@ -134,6 +134,7 @@ class LauncherUI:
         background = displayio.Bitmap(128, 128, 1)
         background_palette = displayio.Palette(1)
         background_palette[0] = SITE_BLUE
+        background_tile_grid = TileGrid(background, pixel_shader=background_palette)
 
         # Cache bitmaps, this will take a while
         if self.cache_bmps:
@@ -146,9 +147,8 @@ class LauncherUI:
                 else:
                     self.bmps[next_app.app_name] = adafruit_imageload.load(next_app.icon_file,bitmap=displayio.Bitmap,palette=displayio.Palette)
         
-        bitmap, bitmap_palette = adafruit_imageload.load(icon,bitmap=displayio.Bitmap,palette=displayio.Palette)
-        background_tile_grid = TileGrid(background, pixel_shader=background_palette)
-        bitmap_tile_grid = TileGrid(bitmap, pixel_shader=bitmap_palette)
+        bitmap = displayio.OnDiskBitmap(icon)
+        bitmap_tile_grid = TileGrid(bitmap, pixel_shader=bitmap.pixel_shader)
         
         scroll_label = ScrollingLabel(font=SCROLL_FONT, text=text, max_characters=13, animate_time=0, current_index=0)
         scroll_label.x = 5
@@ -157,6 +157,7 @@ class LauncherUI:
         group.append(background_tile_grid)
         group.append(bitmap_tile_grid)
         group.append(scroll_label)
+        scroll_label.update(force=True)
 
         return group, bitmap_tile_grid, scroll_label
 
@@ -197,12 +198,15 @@ class LauncherUI:
         if self.cache_bmps:
             self.bitmap_group.bitmap, self.bitmap_group.pixel_shader = self.bmps[app.app_name]
         else:
-            self.bitmap_group.bitmap, self.bitmap_group.pixel_shader = adafruit_imageload.load(icon,bitmap=displayio.Bitmap,palette=displayio.Palette)
+            bitmap = displayio.OnDiskBitmap(icon)
+            self.bitmap_group.bitmap = bitmap
+            self.bitmap_group.pixel_shader = bitmap.pixel_shader
 
         scroll_text = f"{meta['app_name']}   Created By: {meta['author']}          "
         self.scroll_label_group.text = scroll_text
         self.scroll_label_group.current_index = 0
         self.hold_label = 0
+        LCD.refresh()
 
     async def lcd_animate_label(self):
         while True:
