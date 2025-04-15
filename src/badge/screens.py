@@ -153,8 +153,18 @@ def epd_print_exception(e:Exception):
 # scale: This is the scaling of the font.
 # color: 24 bit color. Either hex or int
 #
-def center_text_x_plane(screen, text, y=None, scale=1, color=WHITE):
-  lb = Label(font=FONT, text=text, scale=scale, color=color)
+def center_text_x_plane(screen, text_or_label, y=None, scale=1, color=WHITE):
+    # If the input is a string, create a new Label
+  if isinstance(text_or_label, str):
+    lb = Label(font=FONT, text=text_or_label, scale=scale, color=color)
+  elif isinstance(text_or_label, Label):
+    lb = text_or_label
+    # Ensure we respect the passed-in scale only if this is a new label
+    scale = lb.scale
+  else:
+      raise TypeError("text_or_label must be a string or a Label object")
+
+  # Set x position to center
   lb.x = (screen.width // 2) - ((lb.bounding_box[BB_WIDTH] * scale) // 2)
   if y:
     lb.y = y
@@ -176,18 +186,32 @@ def center_text_x_plane(screen, text, y=None, scale=1, color=WHITE):
 # scale: This is the scaling of the font.
 # color: 24 bit color. Either hex or int
 #
-def center_text_y_plane(screen, text, x=None, scale=1, color=WHITE):
-  lb = Label(font=FONT, text=text, scale=scale, color=color)
-  glyph_height = lb._font.get_bounding_box()[1]*scale
-  lb.y = (glyph_height //2) + (screen.height // 2) - (lb.bounding_box[BB_HEIGHT]*scale // 2)
-  if x:
+def center_text_y_plane(screen, text_or_label, x=None, scale=1, color=WHITE):
+  # If the input is a string, create a new Label
+  if isinstance(text_or_label, str):
+    lb = Label(font=FONT, text=text_or_label, scale=scale, color=color)
+  elif isinstance(text_or_label, Label):
+    lb = text_or_label
+    # Use the scale of the existing label
+    scale = lb.scale
+  else:
+    raise TypeError("text_or_label must be a string or a Label object")
+
+  # Calculate glyph height using the font's bounding box
+  glyph_height = lb._font.get_bounding_box()[1] * scale
+
+  # Center vertically on the screen
+  lb.y = (glyph_height // 2) + (screen.height // 2) - ((lb.bounding_box[BB_HEIGHT] * scale) // 2)
+
+  # Set x position if provided
+  if x is not None:
     lb.x = x
 
   return lb
 
 ###############################################################################
 # This function will take a label that it is passed and set the Y starting point
-#   for the text reletive to the size of the screen. The scale for the text must
+#   for the text relative to the size of the screen. The scale for the text must
 #   be set prior to calling this function.                                                                                                                
 #
 # screen: The screen object. Must be either LCD or EPD
@@ -198,7 +222,7 @@ def center_label_x_plane(screen, lb):
 
 ###############################################################################
 # This function will take a label that it is passed and set the Y starting point
-#   for the text reletive to the size of the screen. The scale for the text must
+#   for the text relative to the size of the screen. The scale for the text must
 #   be set prior to calling this function.
 #
 # screen: The screen object. Must be either LCD or EPD

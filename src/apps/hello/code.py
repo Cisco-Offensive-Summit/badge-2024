@@ -153,10 +153,11 @@ def build_name_tag(hello_json):
 
 def epd_print_error(message):
 
-  EPD.fill(0)
-  EPD.text(epd_wrap_message(message),0,0,1,size=1)
-  EPD.draw()
-
+  set_background(EPD, BLACK)
+  lb = wrap_message(EPD, message)
+  EPD.root_group.append(lb)
+  EPD.refresh()
+  
 ###############################################################################
 
 def read_json_file():
