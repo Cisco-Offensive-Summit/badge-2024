@@ -41,7 +41,7 @@ Links:
 2. Clone CircuitPython
     - `git clone https://github.com/adafruit/circuitpython.git`
     - `cd circuitpython`
-    - `git checkout 9.2.1`
+    - `git checkout 9.2.7`
         - Commit for GitHub Release
     - All steps below assume you will start in the CircuitPython git directory
 3. Install python modules
