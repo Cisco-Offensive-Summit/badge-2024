@@ -3,6 +3,7 @@ import displayio, digitalio, terminalio
 from adafruit_display_text import label
 from microcontroller import nvm 
 
+import badge.constants
 from badge.neopixels import NP
 
 class Brick:
@@ -78,18 +79,35 @@ class TotrisApp:
     def run(self):
         hs = self._get_high_score()
 
-        self.epd.image("img/totris.bmp")
-        self.epd.text("High Score", 70, 78, 1)
-        self.epd.text(f"{hs:04}", 88, 87, 1)
-        self.epd.draw()
+        epd_root = displayio.Group()
+
+        # TODO: Don't hardcode image location
+        if constants.EPD_WIDTH == 128 and EPD_HEIGHT == 96:
+            img_path = "apps/totris/img/totris_small.bmp"
+        else:
+            img_path = "apps/totris/img/totris.bmp"
+        bmp, palette = adafruit_imageload.load(img_path, bitmap=displayio.Bitmap,palette=displayio.Palette)
+        epd_img = TileGrid(bmp, pixel_shader=palette)
+        
+        score_label = center_text_x_plane(self.epd, "High Score", y=78, color=constants.BLACK)
+        hs_label = center_text_x_plane(self.epd, f"{hs:04}", y=87)
+
+        epd_root.append(epd_img)
+        epd_root.append(score_label)
+        epd_root.append(hs_label)
+        self.epd.root_group = epd_root
+        self.epd.refresh()
+
+        #self.epd.image("img/totris.bmp")
+        #self.epd.text("High Score", 70, 78, 1)
+        #self.epd.text(f"{hs:04}", 88, 87, 1)
+        #self.epd.draw()
 
         while self._start_screen():
             self._start_game()
             if self._get_high_score() > hs:
-                self.epd.text(f"{hs:04}", 88, 87, 0)
-                hs = self._get_high_score()
-                self.epd.text(f"{hs:04}", 88, 87, 1)
-                self.epd.update()
+                hs_label.text = f"hs:04"
+                self.epd.refresh()
 
     def _get_high_score(self):
         b = nvm[0:4]
