@@ -4,7 +4,7 @@ import adafruit_imageload
 from adafruit_display_text import label
 from microcontroller import nvm 
 
-from badge.constants import EPD_WIDTH, EPD_HEIGHT, BLACK
+from badge.constants import EPD_SMALL
 from badge.neopixels import NP
 from badge.screens import center_text_x_plane
 
@@ -83,8 +83,7 @@ class TotrisApp:
 
         epd_root = displayio.Group()
 
-        # TODO: Don't hardcode image location
-        if EPD_WIDTH == 128 and EPD_HEIGHT == 96:
+        if EPD_SMALL:
             img_path = "apps/totris/img/totris_small.bmp"
         else:
             img_path = "apps/totris/img/totris.bmp"

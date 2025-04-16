@@ -3,8 +3,15 @@
 
 LCD_WIDTH = 128
 LCD_HEIGHT = 128
-EPD_WIDTH = 128
-EPD_HEIGHT = 96
+
+# E-paper display sizes supported
+EPD_SMALL = True
+if EPD_SMALL:
+    EPD_WIDTH = 128
+    EPD_HEIGHT = 96
+else:
+    EPD_WIDTH = 200
+    EPD_HEIGHT = 96
 
 ###############################################################################
 # BOUNDING BOX CONSTENTS
