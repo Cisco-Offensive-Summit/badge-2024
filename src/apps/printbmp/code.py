@@ -1,13 +1,15 @@
 import os, asyncio, supervisor, time
-from displayio import Group
+from displayio import Group, TileGrid, Bitmap, Palette
 import terminalio
-from adafruit_display_text import label, wrap_text_to_pixels
+from adafruit_display_text.label import Label
+import adafruit_imageload
 from badge.fileops import is_file
-from badge.screens import LCD, EPD, epd_round_button, epd_center_text, epd_wrap_message
+from badge.screens import LCD, EPD, round_button, center_text_x_plane, wrap_message, clear_screen, epd_print_exception
 from badge.neopixels import set_neopixels, neopixels_off
 import badge.buttons
 from badge.events import on
 import badge.events as evt
+from badge.constants import EPD_SMALL, BB_HEIGHT, BB_WIDTH
 
 IMG_DIR = '/img'
 
@@ -21,18 +23,18 @@ class Exit(Exception):
 #--- indicators when button press
 @on(evt.BTN_C_PRESSED)
 def on_c_pressed(e):
-    set_neopixels(0x00FF00, 0x00FF00, 0x00FF00, 0x00FF00)
+    set_neopixels(0xFF0000, 0xFF0000, 0xFF0000, 0xFF0000)
 
 @on(evt.BTN_C_RELEASED)
 def on_c_released(e):
     neopixels_off()
 
 @on(evt.BTN_D_PRESSED)
-def on_c_pressed(e):
-    set_neopixels(0xFF0000, 0xFF0000, 0xFF0000, 0xFF0000)
+def on_d_pressed(e):
+    set_neopixels(0x00FF00, 0x00FF00, 0x00FF00, 0x00FF00)
 
 @on(evt.BTN_D_RELEASED)
-def on_c_released(e):
+def on_d_released(e):
     neopixels_off()
 
 def get_img_list():
@@ -50,27 +52,81 @@ def get_img_list():
     return img_list
 
 def epd_welcome():
-    EPD.fill(0)
-    epd_center_text("PrintBMP", 2, scale=3)
-    epd_center_text("Select an bmp from the '/img'", 30)
-    epd_center_text("directory to display.", 40)
-    epd_center_text("bmp dimensions: 200x96x1", 55)
+    clear_screen(EPD)
+    root = Group()
 
-    radius = 5
-    epd_round_button("Up", 5 + radius, EPD.height - 5 - radius - EPD._font.font_height, radius)
-    epd_round_button("Down", 5 + radius + 40, EPD.height - 5 - radius - EPD._font.font_height, radius)
-    epd_round_button("Select", 5 + radius + 93, EPD.height - 5 - radius - EPD._font.font_height, radius)
-    epd_round_button("Exit", EPD.width - 5 - radius - EPD._font.width("Exit"), EPD.height - 5 - radius - EPD._font.font_height, radius)
+    if EPD_SMALL:
+        text_group = Group()
+        text_group.append(center_text_x_plane(EPD, "PrintBMP", scale=2))
+        text_group.append(center_text_x_plane(EPD, "Select a bmp", y=28))
+        text_group.append(center_text_x_plane(EPD, "from '/img'", y=38))
+        text_group.append(center_text_x_plane(EPD, "bmp dim: 128x96x1", y=58))
+
+        buttons_group = Group()
+        radius = 3
+        offset = 1
+        up_l = Label(font=terminalio.FONT, text="UP ")
+        down_l = Label(font=terminalio.FONT, text="DWN")
+        exit_l = Label(font=terminalio.FONT, text="EXT")
+        sel_l = Label(font=terminalio.FONT, text="SEL")
+
+        def get_button_y(lbl):
+            return EPD.height - radius - (lbl.bounding_box[BB_HEIGHT]//2) - offset
+        
+        buttons_group.append(round_button(up_l, radius + offset, get_button_y(up_l), radius))
+        buttons_group.append(round_button(down_l, radius + offset + 34, get_button_y(down_l), radius))
+        buttons_group.append(round_button(exit_l, radius + offset + 68, get_button_y(exit_l), radius))
+        buttons_group.append(round_button(sel_l, radius + offset + 102, get_button_y(sel_l), radius))
+
+        root.append(text_group)
+        root.append(buttons_group)
+    else:
+        text_group = Group()
+        text_group.append(center_text_x_plane(EPD, "PrintBMP", y=13, scale=3))
+        text_group.append(center_text_x_plane(EPD, "Select an bmp from the '/img'", y=36))
+        text_group.append(center_text_x_plane(EPD, "directory to display.", y=46))
+        text_group.append(center_text_x_plane(EPD, "bmp dimensions: 200x96x1", y=63))
+
+        buttons_group = Group()
+        radius = 5
+        offset = 1
+        up_l = Label(font=terminalio.FONT, text="  UP  ")
+        down_l = Label(font=terminalio.FONT, text=" Down ")
+        exit_l = Label(font=terminalio.FONT, text=" Exit ")
+        sel_l = Label(font=terminalio.FONT, text="Select")
+
+        def get_button_y(lbl):
+            return EPD.height - radius - (lbl.bounding_box[BB_HEIGHT]//2) - offset
+
+        buttons_group.append(round_button(up_l, radius + offset, get_button_y(up_l), radius))
+        buttons_group.append(round_button(down_l, radius + offset + 51, get_button_y(down_l), radius))
+        buttons_group.append(round_button(exit_l, radius + offset + 102, get_button_y(exit_l), radius))
+        buttons_group.append(round_button(sel_l, radius + offset + 153, get_button_y(sel_l), radius))
+    
+        root.append(text_group)
+        root.append(buttons_group)
+
+    EPD.root_group = root
+    EPD.refresh()
+
 
 def draw_bmp(file_name: str):
-    EPD.fill(0)
-    EPD.image(f'{IMG_DIR}/{file_name}')
+    clear_screen(EPD)
+    root = Group()
+    bmp, palette = adafruit_imageload.load(f"{IMG_DIR}/{file_name}", bitmap=Bitmap, palette=Palette)
+    # Invert colors hack
+    palette[0] = 0xFFFFFF
+    palette[1] = 0x000000
+    root.append(TileGrid(bmp, pixel_shader=palette))
+    EPD.root_group = root
+    EPD.refresh()
+    
 
 def lcd_welcome(bmp_list: list):
     text_areas = []
     group = Group()
     for i, f in enumerate(bmp_list):
-        l = label.Label(terminalio.FONT)
+        l = Label(terminalio.FONT)
         l.anchor_point = (0,0)
         l.anchored_position = (1,i*16)
         l.text = f
@@ -101,9 +157,8 @@ async def main_loop():
     while not exit_app:
         epd_welcome()
         group, bmp_list = lcd_welcome(get_img_list())
-        LCD.show(group)
+        LCD.root_group = group
         set_selection(bmp_list, 0)
-        EPD.draw()
 
         loc_acc = 0
         file_acc = 0
@@ -122,11 +177,10 @@ async def main_loop():
                 file_acc = len(bmp_list) - 1 if file_acc == len(bmp_list) - 1 else file_acc + 1
                 set_selection(bmp_list, file_acc)
             elif e == evt.BTN_C_DOWNUP:
-                draw_bmp(bmp_list[file_acc].text)
-                EPD.draw()
-            elif e == evt.BTN_D_DOWNUP:
                 exit_app = True
                 break
+            elif e == evt.BTN_D_DOWNUP:
+                draw_bmp(bmp_list[file_acc].text)
             else:
                 print("Unknown Button")
     
@@ -147,8 +201,7 @@ try:
 except Exit as e:
     print(f"{e}")
 except Exception as e:
-    badge.screens.epd_print_exception(e)
-    badge.screens.EPD.draw()
+    epd_print_exception(e)
     time.sleep(60)
 
 supervisor.reload()
