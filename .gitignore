@@ -5,3 +5,4 @@ __Previews
 __pycache__/
 *.ipynb
 .ipynb*
+*.vscode*

@@ -16,16 +16,12 @@ from badge.constants import EPD_HEIGHT
 from badge.constants import EPD_WIDTH
 from badge.constants import BB_HEIGHT
 from badge.constants import BB_WIDTH
-from badge.screens import center_text_x_plane
-from badge.screens import center_text_y_plane
-from badge.screens import EPD
-from badge.screens import epd_print_exception
-from badge.screens import round_button
-from badge.screens import set_background
+from badge.screens import *
 from badge.events import ANY_BTN_PRESSED, ANY_BTN_RELEASED
 from badge.log import log
 from badge.neopixels import NP as PIXELS
 from badge.neopixels import neopixels_off, set_neopixel, neopixel_reinit
+from displayio import Group
 from terminalio import FONT
 from time import sleep
 
@@ -59,9 +55,9 @@ def welcome_screen():
 
     set_background(LCD, BLACK)
     title_lb = center_text_y_plane(LCD, center_text_x_plane(LCD, title1, 2, scale=2))
-    title_lb.y title_lb.y - 1 - ((title_lb.bounding_box[BB_HEIGHT]*title_lb.scale)//2)
+    title_lb.y = title_lb.y - 1 - ((title_lb.bounding_box[BB_HEIGHT]*title_lb.scale)//2)
     title2_lb = center_text_y_plane(LCD, center_text_x_plane(LCD, title2, 2, scale=2))
-    title2_lb.y title2_lb.y + 1 + ((title2_lb.bounding_box[BB_HEIGHT]*title2_lb.scale)//2)
+    title2_lb.y = title2_lb.y + 1 + ((title2_lb.bounding_box[BB_HEIGHT]*title2_lb.scale)//2)
     splash.append(title_lb)
     splash.append(title2_lb)
     LCD.root_group.append(splash)
@@ -88,13 +84,14 @@ def welcome_screen():
 
 def score_screen(elapsed):
     global PIXELS
-    background()
+    clear_screen(EPD)
+    set_background(EPD, BLACK)
 
-    EPD.text('Time:', 2, 2, 1, size=2)
-    epd_center_text(f"{elapsed} ms", 25, scale=4)
+    EPD.root_group.append(Label(font=FONT,text='Time:', x=2, y=FONT.get_bounding_box()[1], scale=2, color=WHITE))
+    EPD.root_group.append(center_text_y_plane(EPD, center_text_x_plane(EPD, f"{elapsed} ms", scale=3)))
 
-    splash = button_row()  #Need to connect splash to something.
-    EPD.draw()
+    EPD.root_group.append(button_row())  #Need to connect splash to something.
+    EPD.refresh()
 
     rs = RainbowSparkle(
         PIXELS, speed=0.1, num_sparkles=1, step=32, precompute_rainbow=True
@@ -108,12 +105,13 @@ def score_screen(elapsed):
 
 
 def fail_screen(elapsed, answer_button, button_pressed):
-    set_background(EPD, WHITE)
-    r = ""
-    m = ""
+    set_background(EPD, BLACK)
+    reason = ""
+    roast = ""
+    fail_screen = Group()
     if not elapsed:
-        r = "Too soon"
-        m = random.choice(
+        reason = "Too soon"
+        roast = random.choice(
             [
                 "You jumped the gun.",
                 "Hold your horses!",
@@ -124,8 +122,8 @@ def fail_screen(elapsed, answer_button, button_pressed):
             ]
         )
     elif answer_button != button_pressed:
-        r = "Wrong button"
-        m = random.choice(
+        reason = "Wrong button"
+        roast = random.choice(
             [
                 "De-stress, look, press.",
                 "You're all thumbs.",
@@ -138,16 +136,17 @@ def fail_screen(elapsed, answer_button, button_pressed):
     else:
         "Failure.\nReason unknown."
 
-    epd_center_text(r, 4, scale=2)
-    epd_center_text(m, 40)
-    splash = button_row()  # NEEDs to connect ot something
+    fail_screen.append(center_text_x_plane(EPD, reason, y=(FONT.get_bounding_box()[1]//2)+1, scale=1))
+    fail_screen.append(center_text_y_plane(EPD, center_text_x_plane(EPD, wrap_message(EPD,roast))))
+    fail_screen.append(button_row())  # NEEDs to connect ot something
 
     a = Blink(PIXELS, speed=0.2, color=RED)
     for _ in range(10000):
         a.animate()
     neopixels_off()
 
-    EPD.draw()
+    EPD.root_group.append(fail_screen)
+    EPD.refresh()
 
 RACE_START_TIME = None  # None or a ticks_ms() value.
 
