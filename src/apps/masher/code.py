@@ -1,47 +1,90 @@
 import asyncio
 import random
-
 import badge.buttons
 import board
 import supervisor
-import terminalio
+
+from adafruit_display_text.label import Label
 from adafruit_led_animation.animation.blink import Blink
 from adafruit_led_animation.animation.rainbowchase import RainbowChase
 from adafruit_led_animation.animation.rainbowsparkle import RainbowSparkle
 from adafruit_led_animation.color import RED
-from badge.screens import EPD, epd_round_button, epd_center_text, epd_print_exception
+#from badge.screens import EPD, epd_round_button, epd_center_text, epd_print_exception
+from badge.constants import BLACK
+from badge.constants import WHITE
+from badge.constants import EPD_HEIGHT
+from badge.constants import EPD_WIDTH
+from badge.constants import BB_HEIGHT
+from badge.constants import BB_WIDTH
+from badge.screens import center_text_x_plane
+from badge.screens import center_text_y_plane
+from badge.screens import EPD
+from badge.screens import epd_print_exception
+from badge.screens import round_button
+from badge.screens import set_background
 from badge.events import ANY_BTN_PRESSED, ANY_BTN_RELEASED
 from badge.log import log
 from badge.neopixels import NP as PIXELS
 from badge.neopixels import neopixels_off, set_neopixel, neopixel_reinit
-from displayio import Group
-
-
-def background():
-    EPD.fill(0)
+from terminalio import FONT
+from time import sleep
 
 
 def button_row():
+    splash = Group()
+
+    quit_lb = Label(font=FONT,text="Quit",color=WHITE)
+    again_lb = Label(font=FONT,text="Again?",color=WHITE)
     radius = 5
-    epd_round_button("Quit", 5 + radius, EPD.height - 5 - radius - EPD._font.font_height, radius)
-    epd_round_button("Try again", EPD.width - 5 - radius - EPD._font.width("Try again"), EPD.height - 5 - radius - EPD._font.font_height, radius)
+    quit_x = radius
+    quit_y = EPD_HEIGHT - radius - ((quit_lb._font.get_bounding_box()[1] * quit_lb.scale)//2)
+    again_x = EPD_WIDTH - radius - again_lb.bounding_box[BB_WIDTH] * again_lb.scale
+    again_y = quit_y
+    splash.append(round_button(quit_lb, quit_x, quit_y, radius))
+    splash.append(round_button(again_lb, again_x, again_y, radius))
+
+    return splash
 
 def welcome_screen():
+
+    splash = Group()
     title1 = "Welcome to"
     title2 = "MASHER."
-    subtitle1 = "Watch the lights, mash the button"
-    subtitle2 = "ASAP!"
-    subtitle3 = "Don't mash too soon :("
-    subtitle4 = "[ PRESS ANY BUTTON TO START ]"
+    subtitle1 = "Watch the lights"
+    subtitle2 = "mash the button"
+    subtitle3 = "ASAP!"
+    subtitle4 = "Don't mash too soon!"
+    subtitle5 = "[ PRESS ANY BUTTON"
+    subtitle6 = "TO START ]"
 
-    background()
-    epd_center_text(title1, 2, scale=2)
-    epd_center_text(title2, 20, scale=2)
-    epd_center_text(subtitle1, 40)
-    epd_center_text(subtitle2, 50)
-    epd_center_text(subtitle3, 60)
-    epd_center_text(subtitle4, 85)
-    EPD.draw()
+    set_background(LCD, BLACK)
+    title_lb = center_text_y_plane(LCD, center_text_x_plane(LCD, title1, 2, scale=2))
+    title_lb.y title_lb.y - 1 - ((title_lb.bounding_box[BB_HEIGHT]*title_lb.scale)//2)
+    title2_lb = center_text_y_plane(LCD, center_text_x_plane(LCD, title2, 2, scale=2))
+    title2_lb.y title2_lb.y + 1 + ((title2_lb.bounding_box[BB_HEIGHT]*title2_lb.scale)//2)
+    splash.append(title_lb)
+    splash.append(title2_lb)
+    LCD.root_group.append(splash)
+    
+    sleep(2)
+
+    clear_screen(LCD)
+    splash = Group()
+    sub1 = center_text_x_plane(LCD, subtitle1, y=10)
+    text_space = sub1.bounding_box[BB_HEIGHT]+2
+    sub2 = center_text_x_plane(LCD, subtitle2, y=sub1.y + text_space)
+    sub3 = center_text_x_plane(LCD, subtitle3, y=sub2.y + text_space)
+    sub4 = center_text_x_plane(LCD, subtitle4, y=sub3.y + text_space)
+    sub5 = center_text_x_plane(LCD, subtitle5, y=sub4.y + text_space)
+    sub6 = center_text_x_plane(LCD, subtitle6, y=sub5.y + text_space)
+    splash.append(sub1)
+    splash.append(sub2)
+    splash.append(sub3)
+    splash.append(sub4)
+    splash.append(sub5)
+    splash.append(sub6)
+    
+    LCD.root_group.append(splash)
 
 def score_screen(elapsed):
     global PIXELS
@@ -50,7 +93,7 @@ def score_screen(elapsed):
     EPD.text('Time:', 2, 2, 1, size=2)
     epd_center_text(f"{elapsed} ms", 25, scale=4)
 
-    button_row()
+    splash = button_row()  #Need to connect splash to something.
     EPD.draw()
 
     rs = RainbowSparkle(
@@ -65,7 +108,7 @@ def score_screen(elapsed):
 
 
 def fail_screen(elapsed, answer_button, button_pressed):
-    background()
+    set_background(EPD, WHITE)
     r = ""
     m = ""
     if not elapsed:
@@ -97,7 +140,7 @@ def fail_screen(elapsed, answer_button, button_pressed):
 
     epd_center_text(r, 4, scale=2)
     epd_center_text(m, 40)
-    button_row()
+    splash = button_row()  # NEEDs to connect ot something
 
     a = Blink(PIXELS, speed=0.2, color=RED)
     for _ in range(10000):

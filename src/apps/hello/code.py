@@ -13,12 +13,15 @@ import wifi
 from adafruit_display_text.label import Label
 from sys import exit
 from time import sleep
-from badge.colors import *
+from badge.constants import *
 from badge.neopixels import NP
-from badge.screens import LCD, EPD
-from badge.screens import clear_lcd_screen
-from badge.screens import clear_epd_screen
-from badge.screens import epd_wrap_message
+from badge.screens import EPD
+from badge.screens import LCD
+from badge.screens import clear_screen
+from badge.screens import wrap_message
+from badge.screens import set_background
+from badge.screens import center_text_x_plane
+from badge.screens import center_label_y_plane
 
 supervisor.runtime.autoreload = False
 ###############################################################################
@@ -70,7 +73,6 @@ S7_pin_alarm = alarm.pin.PinAlarm(pin=board.BTN1, value=False, pull=True)
 ###############################################################################
 
 def connect_screen_splash():
-  global LCD
 
   splash = displayio.Group()
   LCD.root_group = splash
@@ -80,10 +82,10 @@ def connect_screen_splash():
 ###############################################################################
 
 def request_data(hello_json):
-  global splash
   global session
 
-  clear_lcd_screen(splash)
+  clear_screen(LCD)
+  splash = LCD.root_group
   NP[0] = GREEN
   NP.show()
   splash.append(L1)
@@ -135,38 +137,27 @@ def request_data(hello_json):
 ###############################################################################
 
 def build_name_tag(hello_json):
-  global EPD
 
   color = hello_json['color']
   bg_color = hello_json['background_color']
   name = hello_json['name']
   scale = hello_json['scale']
 
-  tag_height = EPD._font.font_height * scale
-  tag_width = EPD._font.width(name) * scale
-
-  if tag_width >= EPD.width:
-    x = 0
-  else:
-    x = (EPD.width - tag_width) // 2
-
-  if tag_height >= EPD.height:
-    y = 0
-  else:
-    y = (EPD.height - tag_height) // 2
-
-  EPD.fill(bg_color)
-  EPD.text(name,x,y,color,size=scale)
-  EPD.draw()
+  set_background(EPD, bg_color)
+  tag = center_text_x_plane(EPD,name,scale=scale,color=color)
+  center_label_y_plane(EPD, tag)
+  EPD.root_group.append(tag)
+  EPD.refresh()
 
 ###############################################################################
 
 def epd_print_error(message):
 
-  EPD.fill(0)
-  EPD.text(epd_wrap_message(message),0,0,1,size=1)
-  EPD.draw()
-
+  set_background(EPD, BLACK)
+  lb = wrap_message(EPD, message)
+  EPD.root_group.append(lb)
+  EPD.refresh()
+  
 ###############################################################################
 
 def read_json_file():
@@ -185,15 +176,15 @@ def read_json_file():
 def set_default_background():
   hello = dict()
   hello['name']='nobody'
-  hello['color']=1
-  hello['background_color']=0
-  hello['scale']=5
+  hello['color']=0xffffff
+  hello['background_color']=0x0
+  hello['scale']=3
   build_name_tag(hello)
 
 ###############################################################################
 
 def set_lcd_button_labels():
-  global splash
+  splash = LCD.root_group
 
   splash.append(L4)
   splash.append(L5)
@@ -213,10 +204,12 @@ def main():
 
   # if there is saved hello screen info, load that.
   if hello_json:
-    clear_epd_screen()
+    print("exists")
+    clear_screen(EPD)
     build_name_tag(hello_json)
 
   else:
+    print("doesn't exist")
     set_default_background()
 
   while True:
@@ -227,8 +220,8 @@ def main():
     with open('hello.json', 'w') as j:
       json.dump(hello_json, j)
 
-    clear_epd_screen()
-    clear_lcd_screen(splash)
+    clear_screen(EPD)
+    clear_screen(LCD)
     set_lcd_button_labels()
     build_name_tag(hello_json)
     triggered_alarm = alarm.light_sleep_until_alarms(S4_pin_alarm, S7_pin_alarm)

@@ -3,7 +3,7 @@ import digitalio
 import json
 import microcontroller
 import storage
-import supervisor
+import supervisor                                                                                     
 from time import sleep
 from badge.screens import EPD
 
@@ -19,12 +19,6 @@ from badge.screens import EPD
 #     the normal soft boot.
 #  4. settings will return to normal at next run of launcher
 
-###############################################################################
-
-def loop_forever():                                                                                                                                   
-    while True:
-        sleep(1)
-
 supervisor.runtime.autoreload = False
 
 BTN3 = digitalio.DigitalInOut(board.BTN3)
@@ -36,7 +30,12 @@ BTN4.direction = digitalio.Direction.INPUT
 BTN4.pull = digitalio.Pull.UP
 
 ###############################################################################
-
+# Hold BTN4 and BTN3 during reboot to GET a TOKEN
+###############################################################################
+# TODO:
+#
+#This whole section need to be fixed for the new EPD screen.
+###############################################################################
 if not BTN4.value and not BTN3.value:
   storage.remount("/", readonly=False, disable_concurrent_write_protection=False)
   from get_token import get_token

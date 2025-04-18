@@ -4,7 +4,7 @@ import socketpool
 import ssl
 import supervisor
 import wifi
-from badge.colors import *
+from badge.constants import *
 from badge.neopixels import NP
 from secrets import HOST_ADDRESS as HOST
 from secrets import WIFI_NETWORK as SSID

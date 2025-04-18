@@ -1,9 +1,12 @@
 import board, random, time, keypad
 import displayio, digitalio, terminalio
+import adafruit_imageload
 from adafruit_display_text import label
 from microcontroller import nvm 
 
+from badge.constants import EPD_SMALL
 from badge.neopixels import NP
+from badge.screens import center_text_x_plane
 
 class Brick:
     BRICKS = b'ftqr\xf0'
@@ -78,18 +81,31 @@ class TotrisApp:
     def run(self):
         hs = self._get_high_score()
 
-        self.epd.image("img/totris.bmp")
-        self.epd.text("High Score", 70, 78, 1)
-        self.epd.text(f"{hs:04}", 88, 87, 1)
-        self.epd.draw()
+        epd_root = displayio.Group()
+
+        if EPD_SMALL:
+            img_path = "apps/totris/img/totris_small.bmp"
+        else:
+            img_path = "apps/totris/img/totris.bmp"
+        bmp, palette = adafruit_imageload.load(img_path, bitmap=displayio.Bitmap,palette=displayio.Palette)
+        palette[0] = 0xFFFFFF
+        palette[1] = 0x000000
+        epd_img = displayio.TileGrid(bmp, pixel_shader=palette)
+        
+        score_label = center_text_x_plane(self.epd, "High Score", y=82)
+        hs_label = center_text_x_plane(self.epd, f"{hs:04}", y=91)
+
+        epd_root.append(epd_img)
+        epd_root.append(score_label)
+        epd_root.append(hs_label)
+        self.epd.root_group = epd_root
+        self.epd.refresh()
 
         while self._start_screen():
             self._start_game()
             if self._get_high_score() > hs:
-                self.epd.text(f"{hs:04}", 88, 87, 0)
-                hs = self._get_high_score()
-                self.epd.text(f"{hs:04}", 88, 87, 1)
-                self.epd.update()
+                hs_label.text = f"hs:04"
+                self.epd.refresh()
 
     def _get_high_score(self):
         b = nvm[0:4]
@@ -126,7 +142,7 @@ class TotrisApp:
         root.append(lights_label)
         root.append(light_indicator)
         root.append(exit_label)
-        self.lcd.show(root)
+        self.lcd.root_group = root
 
         self.buttons.events.clear()
         while True:
@@ -198,7 +214,7 @@ class TotrisApp:
         root.append(score_label_area)
         root.append(preview_label_area)
         root.append(bricks)
-        self.lcd.show(root)
+        self.lcd.root_group = root
 
         brick = None
         score = 0

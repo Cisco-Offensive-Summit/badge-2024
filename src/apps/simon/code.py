@@ -11,7 +11,7 @@ from adafruit_led_animation.animation.rainbowsparkle import RainbowSparkle
 import badge.buttons
 import badge.events as evt
 from badge.buttons import any_button_downup
-from badge.colors import BLACK, WHITE
+from badge.constants import BLACK, WHITE
 from badge.screens import EPD, epd_round_button, epd_center_text, epd_print_exception
 from badge.events import on
 from badge.log import dbg, info

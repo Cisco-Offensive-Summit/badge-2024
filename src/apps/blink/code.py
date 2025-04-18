@@ -1,17 +1,27 @@
 import asyncio
 import os
 import sys
-
 import board
 import supervisor
+from adafruit_display_text.label import Label
+from displayio import Bitmap
+from displayio import Group
+from displayio import Palette
+from displayio import TileGrid
+from terminalio import FONT
 
 import badge.buttons
 import badge.events as evt
+from badge.constants import BLACK
+from badge.constants import BB_HEIGHT
+from badge.constants import BB_WIDTH
 from badge.events import on
-
-from badge.neopixels import set_neopixel, set_neopixels
-import badge.screens
-from badge.screens import EPD, epd_print_exception
+from badge.neopixels import set_neopixels
+from badge.neopixels import set_neopixel
+from badge.screens import EPD
+from badge.screens import epd_print_exception
+from badge.screens import round_button
+from badge.screens import center_text_x_plane
 
 Curcolor = 0
 Pattern = [0]
@@ -77,33 +87,53 @@ def update_color(color):
 def run():
     asyncio.run(main())
 
-def text(text, scale=1, x=0, y=0):
-    EPD.text(text, x, y, 1, size=scale)
+def text(text, scale=1, y=0):
+    lb = center_text_x_plane(EPD, text, scale=scale, y=y)
+    EPD.root_group.append(lb)
 
 def background():
-    EPD.fill(0)
+    group = Group()
+    background = Bitmap(EPD.width, EPD.height, 1)
+    palette1 = Palette(1)
+    palette1[0] = BLACK
+    tile_grid1 = TileGrid(background, pixel_shader=palette1)
+    group.append(tile_grid1)
+    EPD.root_group = group
 
 
 def button_row(x, y, a_txt=None, b_txt=None, c_txt=None, d_txt=None):
-    spacing = 17
     radius = 5
-    for n, txt in enumerate([a_txt, b_txt, c_txt, d_txt]):
-        if txt is None:
-            continue
-        badge.screens.epd_round_button(txt, 7 + n * (EPD._font.width(txt) + radius + spacing), EPD.height - 5 - radius - EPD._font.font_height, radius)
+    splash = Group()
+
+    lb_blue = Label (font=FONT, text=c_txt)
+    lb_none = Label (font=FONT, text=d_txt)
+    lb_red = Label (font=FONT, text=a_txt)
+    lb_green = Label (font=FONT, text=b_txt)
+
+    x_1 = 2 + radius
+    x_2 = EPD.width - 2 - lb_none.bounding_box[BB_WIDTH] - radius
+    y_1 = EPD.height - 2 - radius - (lb_none.bounding_box[BB_HEIGHT]//2)
+    y_2 = EPD.height - 4 - (radius*3) - (lb_red.bounding_box[BB_HEIGHT]//2*3)
+
+    splash.append(round_button(lb_blue, x_1, y_1, radius))
+    splash.append(round_button(lb_none, x_2, y_1, radius))
+    splash.append(round_button(lb_red, x_1, y_2, radius))
+    splash.append(round_button(lb_green, x_2, y_2, radius))
+
+    EPD.root_group.append(splash)
 
 def usage():
     background()
-    text(" Push buttons to\n  make blinking\n     pattern", 2, 0, 4)
+    text(" Push buttons to\n  make blinking\n     pattern", scale=1, y=4)
     button_row(0, 107, "S4: R", "S5: G", "S6: B", "S7: N")
-    EPD.draw()
+    EPD.refresh()
 
 async def main():
+    usage()
     button_tasks = badge.buttons.start_tasks(interval=0.05)
     event_tasks = evt.start_tasks()
     # all_tasks = [info_task, battery_task] + button_tasks + event_tasks
     all_tasks = [ ] + button_tasks + event_tasks
-    usage()
     i = 0 
     while(True):
         # set_neopixel("b", 0)
@@ -119,7 +149,8 @@ async def main():
         i = (i + 1) % patlen
     await asyncio.gather(*all_tasks)
 
-try:
-    run()
-except Exception as e:
-    epd_print_exception(e)
+if __name__ == "__main__":
+    try:
+        run()
+    except Exception as e:
+        epd_print_exception(e)
