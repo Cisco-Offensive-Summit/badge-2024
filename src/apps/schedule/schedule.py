@@ -1,6 +1,9 @@
 import board, time, keypad
-import displayio, digitalio, terminalio
+import digitalio, terminalio
+from displayio import Group
 import adafruit_requests
+import json
+
 from microcontroller import nvm
 from adafruit_display_text import label, wrap_text_to_pixels
 from adafruit_display_text.scrolling_label import ScrollingLabel
@@ -8,9 +11,10 @@ from wifi import radio as wifiradio
 from ssl import create_default_context
 from socketpool import SocketPool
 
-from pdepd import EPD
 from adafruit_st7735r import ST7735R
 import badge.neopixels
+from badge.wifi import CONNECT_WIFI, connect_wifi
+from badge.constants import EPD_SMALL, EPD_WIDTH, EPD_HEIGHT, LCD_WIDTH, WHITE, BLACK
 
 # Convert meta integer to date string
 def meta_date(meta: int) -> str:
@@ -20,28 +24,6 @@ def meta_date(meta: int) -> str:
     minute = f"{(((meta & 0x3ff)>>4)%4)*15:02d}"
 
     return f"{month}-{day} {hour}:{minute}"
-
-# Wrap text to size
-def wrap_text_to_epd(s: str, display_length:int = 200, char_length:int = 6):
-    words = s.split(' ')
-    ret = []
-
-    acc = 0
-    working_str = ''
-    for word in words:
-        if acc + (len(word) * char_length) <= display_length:
-            acc += (len(word) * char_length) + char_length
-            working_str += word + ' '
-        else:
-            ret.append(working_str)
-            acc = (len(word) * char_length) + char_length
-            working_str = word + ' '
-    
-    if working_str != '':
-        ret.append(working_str)
-
-    return ret
-
 
 class WifiUnreachable(Exception):
     def __init__(self, message):
@@ -73,8 +55,8 @@ class EndpointUnknownResponse(Exception):
 
 class LCDLoading:
     def __init__(self):
-        self.group = displayio.Group()
-        self.loading_area = label.Label(terminalio.FONT, text='\n'.join(wrap_text_to_pixels("Retrieving schedule, please wait...", 126, terminalio.FONT)))
+        self.group = Group()
+        self.loading_area = label.Label(terminalio.FONT, text='\n'.join(wrap_text_to_pixels("Retrieving schedule, please wait...", LCD_WIDTH, terminalio.FONT)))
         self.loading_area.anchor_point = (0,0)
         self.loading_area.anchored_position = (2, 2)
         self.group.append(self.loading_area)
@@ -83,13 +65,13 @@ class LCDLoading:
         return self.group
 
     def set_error(self, text):
-        self.loading_area.text = '\n'.join(wrap_text_to_pixels(text, 126, terminalio.FONT))
+        self.loading_area.text = '\n'.join(wrap_text_to_pixels(text, LCD_WIDTH, terminalio.FONT))
         self.loading_area.color = 0x111111
         self.loading_area.background_color = 0xFF0000
 
 class InputAck:
     def __init__(self):
-        self.group = displayio.Group()
+        self.group = Group()
         
         self.inputack_area = label.Label(terminalio.FONT, text="Input Recieved")
         self.inputack_area.anchor_point = (0.5,0.5)
@@ -108,7 +90,7 @@ class LCDTalksList:
         self.talk_index = 0
         self.selection_index = 0
 
-        self.group = displayio.Group()
+        self.group = Group()
         
         self.track_area = label.Label(terminalio.FONT)
         self.track_area.anchor_point = (0,0)
@@ -121,7 +103,7 @@ class LCDTalksList:
         self.time_area.color = 0x111111
 
         self.selection_area = []
-        self.selection_area_group = displayio.Group()
+        self.selection_area_group = Group()
         for i in range(0,7):
             scroll = ScrollingLabel(terminalio.FONT, text="Placeholder", max_characters=20, animate_time=0.5)
             scroll.anchor_point = (0, 0)
@@ -146,6 +128,8 @@ class LCDTalksList:
     def _set_selection(self, new_selection:int):
         self.selection_area[self.selection_index].color = 0xFFFFFF
         self.selection_area[self.selection_index].background_color = 0x000000
+        self.selection_area[self.selection_index].current_index = 0
+        self.selection_area[self.selection_index].update(force=True)
 
         self.selection_area[new_selection].color = 0x111111
         self.selection_area[new_selection].background_color = 0xaaaaaa
@@ -208,7 +192,7 @@ class LCDTalksList:
 class LCDTitle:
     def __init__(self):
         self.WRAP_WIDTH = 124
-        self.group = displayio.Group()
+        self.group = Group()
         
         self.title_area = label.Label(terminalio.FONT)
         self.title_area.anchor_point = (0,0)
@@ -271,34 +255,60 @@ class LCDTitle:
                 self.title_wait_acc = -1 * self.title_wait
 
 class EPDTalks:
+    root = None
     def __init__(self):
-        pass
-    
-    def set_data(self, epd: EPD):
-        epd.fill(0)
-        epd.fill_rect(0, 0, 200, 9, 1)
-        epd.text("Up | Down  <Talks>  Select | Exit", 1, 1, 0)
-        epd.text("S4 - Up\nS5 - Down\nS6 - Select/Back\nS7 - Exit", 1, 10, 1)
+        self.root = Group()
+        if EPD_SMALL:
+            raise NotImplementedError
+        else:
+            tool_bar_l = label.Label(font=terminalio.FONT, text="Up | Down  <Talks>  Exit | Select ", color=BLACK, background_color=WHITE, background_tight=True, anchor_point=(0,0))
+            tool_bar_l.anchored_position = (0,0)
+            
+            controls_l = label.Label(font=terminalio.FONT, text="S4 - Up\nS5 - Down\nS6 - Exit\nS7 - Select/Back", color=WHITE, anchor_point=(0,0))
+            controls_l.anchored_position = (1,15)
+
+            self.root.append(tool_bar_l)
+            self.root.append(controls_l)
+
+    def get_group(self):
+        return self.root
 
 class EPDDescription:
+    root = None
+    tool_bar_l = None
+    desc_l = None
+    
     def __init__(self):
+        self.root = Group()
         self.x = 2
-        self.y = 10
+        self.y = 11
         self.description_lines = []
         self.description_position = 0
-        self.MAX_LINES = 10
+        self.MAX_LINES = 8
+        if EPD_SMALL:
+            raise NotImplementedError
+        else:
+            self.tool_bar_l = label.Label(font=terminalio.FONT, text="Up | Down    <Info>    Back | Top ", color=BLACK, background_color=WHITE, background_tight=True, anchor_point=(0,0))
+            self.tool_bar_l.anchored_position = (0,0)
+
+            self.desc_l = label.Label(font=terminalio.FONT, text="No Data...", color=WHITE, anchor_point=(0, 0), line_spacing=0.9)
+            self.desc_l.anchored_position = (self.x, self.y)
+
+            self.root.append(self.tool_bar_l)
+            self.root.append(self.desc_l)
+
+    def get_group(self):
+        return self.root
 
     def set_data(self, epd: EPD, description: str):
-        self.description_lines = wrap_text_to_epd(description, display_length=200-self.x)
+        self.description_lines = wrap_text_to_pixels(description, EPD_WIDTH-self.x, terminalio.FONT)
         self.description_position = 0
+        
+        self.desc_l.text = '\n'.join(self.description_lines[self.description_position:self.MAX_LINES])
+            
 
-        epd.fill(0)
-        epd.fill_rect(0, 0, 200, 9, 1)
-        epd.text("Up | Down   <Info>   Back | Exit", 1, 1, 0)
-        epd.text('\n'.join(self.description_lines[self.description_position:self.MAX_LINES]), self.x, self.y, 1)
-
-    def input(self, epd: EPD, scroll_up: bool) -> bool:
-        if len(self.description_lines) < 10:
+    def input(self, scroll_up: bool) -> bool:
+        if len(self.description_lines) < self.MAX_LINES:
             return False
         
         np = 0
@@ -318,8 +328,14 @@ class EPDDescription:
         
         self.description_position = np
 
-        epd.fill_rect(self.x, self.y, 200, 96 - self.y, 0)
-        epd.text('\n'.join(self.description_lines[self.description_position:self.description_position+self.MAX_LINES]), self.x, self.y, 1)
+        self.desc_l.text = '\n'.join(self.description_lines[self.description_position:self.description_position+self.MAX_LINES])
+        return True
+    
+    def top(self) -> bool:
+        if len(self.description_lines) < self.MAX_LINES:
+            return False
+        self.description_position = 0
+        self.desc_l.text = '\n'.join(self.description_lines[self.description_position:self.description_position+self.MAX_LINES])
         return True
         
 
@@ -358,28 +374,27 @@ class ScheduleApp:
 
     # Get schedule from server
     def _get_schedule(self):
-        if not self._connect_wifi():
-            raise WifiUnreachable(f"Could not connect to wifi network '{self.ssid}'")
-        
-        pool = SocketPool(wifiradio)
-        ssl_context = create_default_context()
-        requests = adafruit_requests.Session(pool, ssl_context)
+        if connect_wifi():
+            pool = SocketPool(wifiradio)
+            ssl_context = create_default_context()
+            requests = adafruit_requests.Session(pool, ssl_context)
 
-        headers = {"Content-Type": "application/json"}
+            headers = {"Content-Type": "application/json"}
+            data = {"uniqueID": self.unique_id}
+            resp = requests.get(self.sched_endpoint, data=data, headers=headers)
+            sc = resp.status_code
 
-        data = {"uniqueID": self.unique_id}
-
-        resp = requests.request("GET", self.sched_endpoint, None, data, headers)
-        sc = resp.status_code
-
-        if sc == 200:
-            return resp.json()
-        elif sc == 404:
-            raise EndpointNotReachable(f"Could not reach endpoint: {self.sched_endpoint}.")
-        elif sc >= 400 and sc < 500:
-            raise EndpointBadCredentials(f"Token rejected at endpoint: {self.sched_endpoint}. Make sure you have registered your badge!")
+            if sc == 200:
+                return resp.json()
+            elif sc == 404:
+                raise EndpointNotReachable(f"Could not reach endpoint: {self.sched_endpoint}.")
+            elif sc >= 400 and sc < 500:
+                raise EndpointBadCredentials(f"Token rejected at endpoint: {self.sched_endpoint}. Make sure you have registered your badge!")
+            else:
+                raise EndpointUnknownResponse(f"Unknown response. Code {sc} reason {resp.reason}")
         else:
-            raise EndpointUnknownResponse(f"Unknown response. Code {sc} reason {resp.reason}")
+            with open("apps/schedule/talks.json") as f:
+                return json.load(f)
 
     # Sort schedule
     def _get_schedule_list(self, json: str):
@@ -394,11 +409,14 @@ class ScheduleApp:
 
     # Main entry
     def run(self):
-        main_group = displayio.Group()
-        self.lcd.show(main_group)
+        lcd_main_group = Group()
+        epd_main_group = Group()
+
+        self.lcd.root_group = lcd_main_group
+        self.epd.root_group = epd_main_group
 
         loading = LCDLoading()
-        main_group.append(loading.get_group())
+        lcd_main_group.append(loading.get_group())
         
         try: 
             schedule_json = self._get_schedule()
@@ -412,7 +430,7 @@ class ScheduleApp:
             loading.set_error(f"{e}")
             raise e
 
-        main_group.pop()
+        lcd_main_group.pop()
 
         # Classes
         select = LCDTalksList(sorted_schedule)
@@ -424,9 +442,9 @@ class ScheduleApp:
         input_ack = InputAck()
         input_ack_group = input_ack.get_group()
 
-        main_group.append(select.get_group())
-        epdsplash.set_data(self.epd)
-        self.epd.draw()
+        lcd_main_group.append(select.get_group())
+        epd_main_group.append(epdsplash.get_group())
+        self.epd.refresh()
 
         self.buttons.events.clear()
         while True:
@@ -434,20 +452,19 @@ class ScheduleApp:
             select.update()
             event = self.buttons.events.get()
             if event and event.pressed:
-                # BTN1 Exit
-                if event.key_number == 0:
-                    for i in range(len(main_group)):
-                        main_group.pop()
-                    return
 
-                # BTN2 Select
-                elif event.key_number == 1:
+                # BTN1 Select
+                if event.key_number == 0:
                     talk = select.get_talk()
                     title.set_data(talk["title"], talk["track"], talk["meta"])
-                    main_group.pop()
-                    main_group.append(title.get_group())
+                    lcd_main_group.pop()
+                    lcd_main_group.append(title.get_group())
+                    
+                    epd_main_group.pop()
+                    epd_main_group.append(desc.get_group())
                     desc.set_data(self.epd, talk["desc"])
-                    self.epd.draw()
+                    self.epd.refresh()
+
                     self.buttons.events.clear()
                     while True:
                         title.update()
@@ -456,34 +473,42 @@ class ScheduleApp:
                         subevent = self.buttons.events.get()
                         if subevent and subevent.pressed:
 
-                            main_group.append(input_ack_group)
+                            lcd_main_group.append(input_ack_group)
                             badge.neopixels.NP.fill(0x00FF00)
                             time.sleep(0.5)
                             badge.neopixels.NP.fill(0x000000)
-                            main_group.pop()
+                            lcd_main_group.pop()
 
-                            # BTN1 Exit
+                            # BTN1 Top
                             if subevent.key_number == 0:
-                                for i in range(len(main_group)):
-                                    main_group.pop()
-                                return
+                                if desc.top():
+                                    self.epd.refresh()
                             # BTN2 Back
                             elif subevent.key_number == 1:
-                                main_group.pop()
-                                main_group.append(select.get_group())
-                                epdsplash.set_data(self.epd)
-                                self.epd.draw()
+                                lcd_main_group.pop()
+                                lcd_main_group.append(select.get_group())
+                                
+                                epd_main_group.pop()
+                                epd_main_group.append(epdsplash.get_group())
+                                self.epd.refresh()
+
                                 break
                             # BTN3 Down
                             elif subevent.key_number == 2:
-                                if desc.input(self.epd, False):
-                                    self.epd.draw()
+                                if desc.input(False):
+                                    self.epd.refresh()
                             # BTN4 Up
                             elif subevent.key_number == 3:
-                                if desc.input(self.epd, True):
-                                    self.epd.draw()
+                                if desc.input(True):
+                                    self.epd.refresh()
                             
                             self.buttons.events.clear()
+
+                # BTN2 Exit
+                elif event.key_number == 1:
+                    for i in range(len(lcd_main_group)):
+                        lcd_main_group.pop()
+                    return
 
                 # BTN3 Down
                 elif event.key_number == 2:

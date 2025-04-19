@@ -80,20 +80,22 @@ def wrap_message(screen, message, font=FONT, x=0, y=None, scale=1):
   else:
     lb.y = y
   lb.x = x
-  words = message.split(" ")
-  check_width = words[0]
-  will_fit = check_width
+  for line in message.split("\n"):
+    words = line.split(" ")
+    check_width = words[0]
+    will_fit += check_width
 
-  for word in words[1:]:
-    check_width += " " + word
-    lb.text = check_width
-    if not (lb.bounding_box[BB_WIDTH]*scale) > screen.width:
-      will_fit += " " + word
-    else:
-      will_fit += "\n" + word
-      check_width = will_fit
+    for word in words[1:]:
+      check_width += " " + word
+      lb.text = check_width
+      if not (lb.bounding_box[BB_WIDTH]*scale) > screen.width:
+        will_fit += " " + word
+      else:
+        will_fit += "\n" + word
+        check_width = will_fit
+    will_fit += "\n"
 
-  lb.text = will_fit
+  lb.text = will_fit.rstrip('\n')
   return lb
   
 ###############################################################################

@@ -21,6 +21,10 @@ from badge.screens import EPD
 
 supervisor.runtime.autoreload = False
 
+BTN1 = digitalio.DigitalInOut(board.BTN1)
+BTN1.direction = digitalio.Direction.INPUT
+BTN1.pull = digitalio.Pull.UP
+
 BTN3 = digitalio.DigitalInOut(board.BTN3)
 BTN3.direction = digitalio.Direction.INPUT
 BTN3.pull = digitalio.Pull.UP
@@ -28,6 +32,13 @@ BTN3.pull = digitalio.Pull.UP
 BTN4 = digitalio.DigitalInOut(board.BTN4)
 BTN4.direction = digitalio.Direction.INPUT
 BTN4.pull = digitalio.Pull.UP
+
+###############################################################################
+# Hold BTN1 and BTN4 during reboot to enter safe mode
+###############################################################################
+if not BTN1.value and not BTN4.value:
+    microcontroller.on_next_reset(microcontroller.RunMode.SAFE_MODE)
+    microcontroller.reset()
 
 ###############################################################################
 # Hold BTN4 and BTN3 during reboot to GET a TOKEN
