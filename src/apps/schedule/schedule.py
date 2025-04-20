@@ -259,16 +259,18 @@ class EPDTalks:
     def __init__(self):
         self.root = Group()
         if EPD_SMALL:
-            raise NotImplementedError
+            tool_bar_text = "Up|Dwn Talks Ext|Sel "
         else:
-            tool_bar_l = label.Label(font=terminalio.FONT, text="Up | Down  <Talks>  Exit | Select ", color=BLACK, background_color=WHITE, background_tight=True, anchor_point=(0,0))
-            tool_bar_l.anchored_position = (0,0)
+            tool_bar_text = "Up | Down  <Talks>  Exit | Select "
             
-            controls_l = label.Label(font=terminalio.FONT, text="S4 - Up\nS5 - Down\nS6 - Exit\nS7 - Select/Back", color=WHITE, anchor_point=(0,0))
-            controls_l.anchored_position = (1,15)
+        tool_bar_l = label.Label(font=terminalio.FONT, text=tool_bar_text, color=BLACK, background_color=WHITE, background_tight=True, anchor_point=(0,0))
+        tool_bar_l.anchored_position = (0,0)
+        
+        controls_l = label.Label(font=terminalio.FONT, text="S4 - Up\nS5 - Down\nS6 - Exit/Back\nS7 - Select/Top", color=WHITE, anchor_point=(0,0))
+        controls_l.anchored_position = (1,15)
 
-            self.root.append(tool_bar_l)
-            self.root.append(controls_l)
+        self.root.append(tool_bar_l)
+        self.root.append(controls_l)
 
     def get_group(self):
         return self.root
@@ -286,16 +288,18 @@ class EPDDescription:
         self.description_position = 0
         self.MAX_LINES = 8
         if EPD_SMALL:
-            raise NotImplementedError
+            tool_bar_text = "Up|Dwn  Info  Bck|Top "
         else:
-            self.tool_bar_l = label.Label(font=terminalio.FONT, text="Up | Down    <Info>    Back | Top ", color=BLACK, background_color=WHITE, background_tight=True, anchor_point=(0,0))
-            self.tool_bar_l.anchored_position = (0,0)
+            tool_bar_text="Up | Down    <Info>    Back | Top "
+        
+        self.tool_bar_l = label.Label(font=terminalio.FONT, text=tool_bar_text, color=BLACK, background_color=WHITE, background_tight=True, anchor_point=(0,0))
+        self.tool_bar_l.anchored_position = (0,0)
 
-            self.desc_l = label.Label(font=terminalio.FONT, text="No Data...", color=WHITE, anchor_point=(0, 0), line_spacing=0.9)
-            self.desc_l.anchored_position = (self.x, self.y)
+        self.desc_l = label.Label(font=terminalio.FONT, text="No Data...", color=WHITE, anchor_point=(0, 0), line_spacing=0.9)
+        self.desc_l.anchored_position = (self.x, self.y)
 
-            self.root.append(self.tool_bar_l)
-            self.root.append(self.desc_l)
+        self.root.append(self.tool_bar_l)
+        self.root.append(self.desc_l)
 
     def get_group(self):
         return self.root
