@@ -1,4 +1,5 @@
 import supervisor
+import microcontroller
 import time
 from badge.screens import EPD, LCD, epd_print_exception
 from apps.schedule.schedule import ScheduleApp
@@ -23,4 +24,4 @@ except Exception as e:
     epd_print_exception(e)
     time.sleep(60)
 
-supervisor.reload()
+microcontroller.reset()
