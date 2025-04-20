@@ -12,6 +12,7 @@ from ssl import create_default_context
 from socketpool import SocketPool
 
 from adafruit_st7735r import ST7735R
+from adafruit_hashlib import md5
 import badge.neopixels
 from badge.wifi import CONNECT_WIFI, connect_wifi
 from badge.constants import EPD_SMALL, EPD_WIDTH, EPD_HEIGHT, LCD_WIDTH, WHITE, BLACK
@@ -53,6 +54,13 @@ class EndpointUnknownResponse(Exception):
     def __str__(self):
         return self.message
 
+class CantFetchSchedule(Exception):
+    def __init__(self, message):
+        self.message = message
+        super().__init__(message)
+    def __str__(self):
+        return self.message
+
 class LCDLoading:
     def __init__(self):
         self.group = Group()
@@ -63,6 +71,9 @@ class LCDLoading:
 
     def get_group(self):
         return self.group
+
+    def set_text(self, text):
+        self.loading_area.text = '\n'.join(wrap_text_to_pixels(text, LCD_WIDTH, terminalio.FONT))
 
     def set_error(self, text):
         self.loading_area.text = '\n'.join(wrap_text_to_pixels(text, LCD_WIDTH, terminalio.FONT))
@@ -344,14 +355,15 @@ class EPDDescription:
         
 
 class ScheduleApp:
-    def __init__(self, lcd: ST7735R, epd: EPD, ssid: str, wifipass: str, sched_endpoint: str, unique_id: str):
+    def __init__(self, lcd: ST7735R, epd: EPD, ssid: str, wifipass: str, base_endpoint: str, unique_id: str):
         self.lcd = lcd
         self.epd = epd
 
         self.ssid = ssid
         self.wifipass = wifipass
         self.unique_id = unique_id
-        self.sched_endpoint = sched_endpoint
+        self.sched_endpoint = f"{base_endpoint}/badge/schedule"
+        self.sched_hash_endpoint = f"{base_endpoint}/badge/schedule_hash"
 
         self.buttons = keypad.Keys((
             board.BTN1,
@@ -360,24 +372,30 @@ class ScheduleApp:
             board.BTN4,
         ), value_when_pressed=False)
 
-    def __del__(self) -> None:
-        pass
-
-    def _connect_wifi(self):
-        if wifiradio.connected:
-            return True
+    # Handle response codes from server
+    def _handle_resp(self, resp) -> {}:
+        sc = resp.status_code
+        if sc == 200:
+            return resp.json()
+        elif sc == 404:
+            raise EndpointNotReachable(f"Could not reach endpoint: {self.sched_endpoint}.")
+        elif sc >= 400 and sc < 500:
+            raise EndpointBadCredentials(f"Token rejected at endpoint: {self.sched_endpoint}. Make sure you have registered your badge!")
+        else:
+            raise EndpointUnknownResponse(f"Unknown response. Code {sc} reason {resp.reason}")
         
-        for i in range(5):
-            try:
-                wifiradio.connect(self.ssid, self.wifipass)
-                return wifiradio.connected
-            except:
-                None
-
-        return False
 
     # Get schedule from server
-    def _get_schedule(self):
+    def _get_schedule(self, loading) -> {}:
+        sched_hash = ""
+        try:
+            with open('/apps/schedule/sched.json', 'rb') as f:
+                m = md5()
+                m.update(f.read())
+                sched_hash = m.hexdigest()
+        except OSError:
+            pass
+        
         if connect_wifi():
             pool = SocketPool(wifiradio)
             ssl_context = create_default_context()
@@ -385,20 +403,27 @@ class ScheduleApp:
 
             headers = {"Content-Type": "application/json"}
             data = {"uniqueID": self.unique_id}
-            resp = requests.get(self.sched_endpoint, data=data, headers=headers)
-            sc = resp.status_code
+            
+            server_hash_resp = requests.get(self.sched_hash_endpoint, data=data, headers=headers)
+            server_sched_hash = self._handle_resp(server_hash_resp)
 
-            if sc == 200:
-                return resp.json()
-            elif sc == 404:
-                raise EndpointNotReachable(f"Could not reach endpoint: {self.sched_endpoint}.")
-            elif sc >= 400 and sc < 500:
-                raise EndpointBadCredentials(f"Token rejected at endpoint: {self.sched_endpoint}. Make sure you have registered your badge!")
-            else:
-                raise EndpointUnknownResponse(f"Unknown response. Code {sc} reason {resp.reason}")
-        else:
-            with open("apps/schedule/talks.json") as f:
+            if server_sched_hash["hash"] != sched_hash:
+                loading.set_text("New schedule found, replacing old file...")
+                resp = requests.get(self.sched_endpoint, data=data, headers=headers)
+                new_sched = self._handle_resp(resp)
+                with open('/apps/schedule/sched.json', 'w') as f:
+                    f.write(new_sched.dumps())
+                return new_sched
+
+        try:
+            with open("apps/schedule/sched.json") as f:
                 return json.load(f)
+        except OSError as e:
+            # File not found 
+            if e.errno == 2:
+                raise CantFetchSchedule(f"No local schedule available and cannot fetch from badge network.")
+            else:
+                raise e
 
     # Sort schedule
     def _get_schedule_list(self, json: str):
@@ -423,7 +448,7 @@ class ScheduleApp:
         lcd_main_group.append(loading.get_group())
         
         try: 
-            schedule_json = self._get_schedule()
+            schedule_json = self._get_schedule(loading)
         except Exception as e:
             loading.set_error(f"{e}")
             raise e

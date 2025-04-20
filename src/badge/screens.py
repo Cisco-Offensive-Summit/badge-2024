@@ -5,6 +5,7 @@ import framebufferio
 from adafruit_st7735r import ST7735R
 from adafruit_display_shapes.roundrect import RoundRect
 from adafruit_display_text.label import Label
+from adafruit_display_text import wrap_text_to_pixels
 from displayio import Bitmap
 from displayio import FourWire
 from displayio import Group
@@ -14,6 +15,7 @@ from displayio import TileGrid
 from terminalio import FONT
 from traceback import format_exception, print_exception
 
+from badge.constants import EPD_SMALL
 from badge.constants import BLACK
 from badge.constants import WHITE
 from badge.constants import BB_WIDTH
@@ -139,7 +141,14 @@ def round_button(label:Label, x, y, rad, color=WHITE, fill=None ,stroke=1):
 #
 def epd_print_exception(e:Exception):
   print_exception(e)
-  lb = wrap_message(EPD,format_exception(e, limit=2)[0])
+  if EPD_SMALL:
+    text = '\n'.join(wrap_text_to_pixels('\n'.join(format_exception(e, limit=1)), EPD_WIDTH, FONT))
+    lb = Label(font=FONT, text=text, anchor_point=(0,0), line_spacing=0.9)
+    lb.anchored_position = (1,1)
+  else:
+    text = '\n'.join(wrap_text_to_pixels('\n'.join(format_exception(e, limit=2)), EPD_WIDTH, FONT))
+    lb = Label(font=FONT, text=text, anchor_point=(0,0), line_spacing=0.9)
+    lb.anchored_position = (1,1)
   EPD.root_group = lb
   EPD.refresh()
 
