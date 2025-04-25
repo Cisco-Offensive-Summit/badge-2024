@@ -179,3 +179,11 @@ class WIFI:
         else:
             raise WifiPasswordException("Unknown issues with wifi passw")
 
+    def __repr__(self) -> str:
+        ip = self.ipv4 or "N/A"
+        return f"<WIFI(ssid='{self.ssid}', connected={self.is_connected()}, ip='{ip}', mac='{self.mac}')>"
+
+    def __str__(self) -> str:
+        status = "Connected" if self.is_connected() else "Disconnected"
+        return f"WIFI to '{self.ssid}' [{status}] IP: {self.ipv4 or 'N/A'}"
+
