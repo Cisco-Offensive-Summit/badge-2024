@@ -7,14 +7,11 @@ import json
 from microcontroller import nvm
 from adafruit_display_text import label, wrap_text_to_pixels
 from adafruit_display_text.scrolling_label import ScrollingLabel
-from wifi import radio as wifiradio
-from ssl import create_default_context
-from socketpool import SocketPool
 
 from adafruit_st7735r import ST7735R
 from adafruit_hashlib import md5
 import badge.neopixels
-from badge.wifi import CONNECT_WIFI, connect_wifi
+from badge.wifi import WIFI
 from badge.constants import EPD_SMALL, EPD_WIDTH, EPD_HEIGHT, LCD_WIDTH, WHITE, BLACK
 
 # Convert meta integer to date string
@@ -396,20 +393,17 @@ class ScheduleApp:
         except OSError:
             pass
         
-        if connect_wifi():
-            pool = SocketPool(wifiradio)
-            ssl_context = create_default_context()
-            requests = adafruit_requests.Session(pool, ssl_context)
-
+        w = WIFI()
+        if w.connect_wifi():
             headers = {"Content-Type": "application/json"}
             data = {"uniqueID": self.unique_id}
             
-            server_hash_resp = requests.get(self.sched_hash_endpoint, data=data, headers=headers)
+            server_hash_resp = w.requests.get(self.sched_hash_endpoint, data=data, headers=headers)
             server_sched_hash = self._handle_resp(server_hash_resp)
 
             if server_sched_hash["hash"] != sched_hash:
                 loading.set_text("New schedule found, replacing old file...")
-                resp = requests.get(self.sched_endpoint, data=data, headers=headers)
+                resp = w.requests.get(self.sched_endpoint, data=data, headers=headers)
                 new_sched = self._handle_resp(resp)
                 with open('/apps/schedule/sched.json', 'w') as f:
                     f.write(new_sched.dumps())

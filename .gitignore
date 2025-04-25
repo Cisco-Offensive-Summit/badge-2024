@@ -1,4 +1,5 @@
 src/secrets.py
+src/lib/leaderboard.py
 filesystem.c
 .DS_Store
 __Previews
