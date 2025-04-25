@@ -113,7 +113,7 @@ class WIFI:
             if self._update:
                 self._update_status("Getting new requests session")
             # Create a requests object
-            self.requests = adafruit_requests.Session(self.pool)
+            self.requests = adafruit_requests.Session(self.pool).request
         except Exception as e:
             raise WifiSessionException(e)
 
