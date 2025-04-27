@@ -104,19 +104,39 @@ class _NVM:
 
         # Iterate over the map and create memory blocks for each item
         for key, value in self.map.items():
-            new_block = _MemoryBlock(value[0],value[1], self._USED)
-            
+            new_block = _MemoryBlock(value[0],value[1], mb._USED)
+
             # Add this new block to the memory block list
-            if self._mbl is None:
-                self._mbl = new_block  # First block becomes the head
+            if _mbl is None:
+                _mbl = _MemoryBlockList(new_block)  # First block becomes the head
             else:
                 # Traverse to the end and append
-                current = self._mbl
+                current = _mbl.head
                 while current.next is not None:
                     current = current.next
                 current.next = new_block  # Append new block at the end
+        self.print_memory_block_details()
+        log(f"Built memory block list: {_mbl}")
+
+    def print_memory_block_details(self):
+        current = _mbl.head
+        if not current:
+            print("Memory block list is empty.")
+            return
         
-        log(f"Built memory block list: {self._mbl}")
+        print("Memory Block List:")
+        node_index = 1
+        while current:
+            block_type = "FREE" if current.block_type == 0 else "USED"
+            print(f"Node {node_index}:")
+            print(f"  Start: {current.start}")
+            print(f"  Stop: {current.stop}")
+            print(f"  Block Type: {block_type} (Type Code: {current.block_type})")
+            print(f"  Next Node: {current.next if current.next else 'None'}")
+            print("-" * 30)  # separator between nodes
+            current = current.next
+            node_index += 1
+        print("End of Memory Block List.")
 
     def _set_size(self, size: int) -> None:
         """Set the map size and handle associated state updates."""
@@ -198,6 +218,8 @@ class _NVM:
         self.map = map
 
     def read_data(self, name:str):
+        if name not in self.map:
+            raise ValueError(f"No entry found for '{name}' in map.")
         metadata = self.map[name]
         if not isinstance(metadata, list):
             raise ValueError("metadata not of type \"list\"")
@@ -337,8 +359,12 @@ def nvm_save(name: str, data):
 
 # Open and return data from NVM
 def nvm_open(name: str):
-    """Open data from NVM, using the memory block list."""
-    b64_data, data_type = _nvm.read_data(name)
+    try:
+        """Open data from NVM, using the memory block list."""
+        b64_data, data_type = _nvm.read_data(name)
+    except ValueError:
+        raise
+
     decoded_data = Base64Wrapper(data=b64_data, data_type=data_type)
     return decoded_data.get()
 
@@ -365,3 +391,30 @@ def nvm_wipe():
     """Delete each individual item in the NVM map one by one."""
     for name in list(_nvm.map.keys()):
         _nvm.free_data(name)
+
+def print_list():
+    current = _mbl.head
+    while current:
+        print(f"[{current.start}-{current.stop}] ({'FREE' if current.block_type == 0 else 'USED'} ({current.block_type}))", end=" -> ")
+        current = current.next
+    print("None")
+
+def print_memory_block_details():
+    current = _mbl.head
+    if not current:
+        print("Memory block list is empty.")
+        return
+    
+    print("Memory Block List:")
+    node_index = 1
+    while current:
+        block_type = "FREE" if current.block_type == 0 else "USED"
+        print(f"Node {node_index}:")
+        print(f"  Start: {current.start}")
+        print(f"  Stop: {current.stop}")
+        print(f"  Block Type: {block_type} (Type Code: {current.block_type})")
+        print(f"  Next Node: {current.next if current.next else 'None'}")
+        print("-" * 30)  # separator between nodes
+        current = current.next
+        node_index += 1
+    print("End of Memory Block List.")

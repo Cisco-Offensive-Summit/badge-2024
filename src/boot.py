@@ -3,9 +3,11 @@ import digitalio
 import json
 import microcontroller
 import storage
-import supervisor                                                                                     
+import supervisor
+from badge_nvm import nvm_open                                                                                     
 from time import sleep
 from badge.screens import EPD
+from badge.log import log
 
 ###############################################################################
 
@@ -72,16 +74,13 @@ default_config = {
 }
 
 new_config = None
-BOOT_CONFIG_START = len(microcontroller.nvm) // 2
+BOOT_CONFIG = "config"
 
-# If first byte is 0 then its been cleared
-if microcontroller.nvm[BOOT_CONFIG_START] != 0:
-    try:
-        new_config = json.loads(microcontroller.nvm[BOOT_CONFIG_START:])
-    except Exception as e:
-        print("nvram new_config json.loads exception:")
-        print(repr(e))
-        print()
+try:
+    new_config = json.loads(nvm_open(BOOT_CONFIG))
+    log(f'Config read from NVM: {new_config}')
+except KeyError:
+    log(f"boot.py: No config found")
 
 boot_config = default_config
 
@@ -98,7 +97,6 @@ if boot_config["disable_usb_drive"]:
         storage.disable_usb_drive()
     except Exception as e:
         print(repr(e))
-
 
 if boot_config["mount_root_rw"]:
     try:

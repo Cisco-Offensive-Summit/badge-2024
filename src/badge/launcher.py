@@ -17,6 +17,7 @@ from terminalio import FONT
 
 import badge.buttons
 import badge.events as evt
+from badge_nvm import *
 from badge.app import App
 from badge.buttons import a_pressed as ap
 from badge.buttons import d_pressed as dp
@@ -37,7 +38,7 @@ from badge.ziplist import ziplist
 #################### Globals ###############
 
 ### Launcher ###
-BOOT_CONFIG_START = len(microcontroller.nvm)//2
+BOOT_CONFIG = 'config'
 SELECTO = None # Populate at run()
 
 ### Apps ###
@@ -256,18 +257,10 @@ def get_app_list():
             entries.append(app)
     return entries
 
-def clear_nvm():
-    nvm_len = len(microcontroller.nvm)
-    zeros = b"\x00" * (nvm_len - BOOT_CONFIG_START)
-    # Check if clear is needed since nvm has a write lifetime
-    if microcontroller.nvm[BOOT_CONFIG_START:] != zeros:
-        microcontroller.nvm[BOOT_CONFIG_START:] = zeros
-
 def nvm_store_config(new_boot_config):
-    json_bytes = bytes(json.dumps(new_boot_config), "ascii")
-    len_json = len(json_bytes)
-    microcontroller.nvm[BOOT_CONFIG_START:BOOT_CONFIG_START + len_json] = json_bytes
-    log(f"stored nvm config: {json_bytes}")
+    dump = json.dumps(new_boot_config)
+    nvm_save(BOOT_CONFIG,dump)
+    log(f"stored nvm config: {dump}")
 
 def launch_app(entry):
     new_boot_config = entry.boot_config
@@ -283,7 +276,7 @@ def launch_app(entry):
     sys.exit(0)
 
 def run():
-    global SELECTO, APPLIST, LAUNCHER_UI
+    global SELECTO, APPLIST, LAUNCHER_UI, BOOT_CONFIG
     APPLIST = get_app_list()
 
     sel_entries = list(zip(APPLIST, indicators()))
@@ -294,24 +287,23 @@ def run():
     # Use a stored next_code_file from nvm first
     next_code_file = None
     try:
-        cfg = json.loads(microcontroller.nvm[BOOT_CONFIG_START:])
+        cfg = json.loads(nvm_open(BOOT_CONFIG))
         next_code_file = cfg.get("next_code_file", None)
-    except Exception:
+        log(f'next_code_file: {next_code_file}')
+    except Exception as e:
+        log("ERR read_nvm_config", repr(e))
         pass
-        # log("ERR read_nvm_config", repr(e))
     if next_code_file:
         log("Next code file:", next_code_file)
-        clear_nvm()
         supervisor.set_next_code_file(next_code_file)
         supervisor.reload()
         sys.exit(0)
     # If continuing, set nvm back to blank and continue as usual
-    clear_nvm()
     LAUNCHER_UI = LauncherUI(cache_bmps=False)
     asyncio.run(LAUNCHER_UI.run())
 
 def run_at_boot():
-    global BOOT_CONFIG_START
+    global BOOT_CONFIG
     default_config = {
         "mount_root_rw": False,
         "disable_usb_drive": False,
@@ -320,7 +312,7 @@ def run_at_boot():
 
     new_config = None
     try:
-        new_config = json.loads(microcontroller.nvm[BOOT_CONFIG_START:])
+        new_config = json.loads(nvm_open(BOOT_CONFIG))
     except Exception as e:
         print("nvram new_config json.loads exception:")
         print(repr(e))
