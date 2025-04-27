@@ -1,4 +1,4 @@
-__all__ = ["nvm_save", "nvm_open","nvm_free"]
+__all__ = ["nvm_save", "nvm_open","nvm_free","nvm_compact","nvm_info","nvm_format()","nvm_wipe"]
 
 import struct
 import json
@@ -102,7 +102,6 @@ class _NVM:
             log("No map to build from.")
             return        
 
-        log(self._print_map(self.map))
         # Iterate over the map and create memory blocks for each item
         for key, value in self.map.items():
             new_block = _MemoryBlock(value[0],value[1], self._USED)
@@ -128,8 +127,14 @@ class _NVM:
         board_NVM[self._SIZE_DATA_START:self._SIZE_DATA_START + self._SIZE_DATA_SIZE] = data
 
         if size == 0:
-            print("Warning: The map is empty.")
-        # You could also add additional logging, checks, or actions here
+            log("Warning: The map is empty.")
+
+    def erase_all(self) -> None:
+        """Sets the index map size to 0 so a new map will be drawn next read."""
+        data = bytearray("size:", "utf-8")
+        board_NVM[self._SIZE_START:self._SIZE_START+self._SIZE_STRING_SIZE] = data
+        data = bytearray(struct.pack("I", 0))
+        board_NVM[self._SIZE_DATA_START:self._SIZE_DATA_START + self._SIZE_DATA_SIZE] = data
 
     def save_data(self, name: str, base64_data: Base64Wrapper):
         """Save data to the NVM and update the map and memory block list."""
@@ -189,7 +194,6 @@ class _NVM:
             current = current.next
 
         # Update the memory map with the new data.
-        log(f"data_type before saving {base64_data.data_type}")
         map[name] = list(start_end) + [base64_data.data_type]
         self.map = map
 
@@ -215,7 +219,7 @@ class _NVM:
             return result
 
         # If no space found, compact memory and try again
-        self._compact_memory()
+        self.compact_memory()
         result = search()
         if result:
             return result
@@ -226,8 +230,6 @@ class _NVM:
     def free_data(self, name: str):
         """Free the data associated with the given name and update the memory block list."""
         map_copy = self.map
-        log(self._print_map(map_copy))
-
 
         try:
             start, end, data_type = map_copy[name]
@@ -249,14 +251,14 @@ class _NVM:
 
         log(f"Data with name '{name}' has been freed and removed from map.")
 
-    def _compact_memory(self):
+    def compact_memory(self):
         """Compacts memory by moving used blocks down and merging free space."""
         log("Starting memory compaction...")
 
         map_copy = self.map
         current = _mbl.head
 
-        new_position = 0  # Where the next used block should go
+        new_position = self._DATA_START # Where the next used block should go
 
         while current:
             block_size = current.stop - current.start
@@ -317,11 +319,10 @@ class _NVM:
             raise MapSizeException("Map size too large" +f"size: {map_size}, allowed: {self._MAX_MAP_SIZE}")
 
         self._map = new_map
-        log(self._print_map(self._map))
 
         board_NVM[self._MAP_START:self._MAP_START + map_size] = data
         # Update the map size based on the new map
-        self._set_size(map_size)  # Assuming size is the length of the map
+        self._set_size(map_size) 
 
 _nvm = _NVM()
 
@@ -345,3 +346,22 @@ def nvm_open(name: str):
 def nvm_free(name: str):
     """Deletes the map entry and allocates as free space"""
     _nvm.free_data(name)
+
+def nvm_compact():
+    """Trigger memory compaction to consolidate free space in NVM."""
+    _nvm.compact_memory()
+
+def nvm_info():
+    """Print a summary of all saved entries in NVM, showing their ranges and data types."""
+    print("NVM Map:")
+    for name, (start, stop, dtype) in _nvm.map.items():
+        print(f"- {name}: {start}-{stop} ({dtype})")
+
+def nvm_format():
+    """Erase the entire NVM, clearing all saved data and resetting the map."""
+    _nvm.erase_all()
+
+def nvm_wipe():
+    """Delete each individual item in the NVM map one by one."""
+    for name in list(_nvm.map.keys()):
+        _nvm.free_data(name)

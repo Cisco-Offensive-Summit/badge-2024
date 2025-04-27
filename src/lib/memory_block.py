@@ -134,7 +134,7 @@ class _MemoryBlockList:
             # Block was tail
             self.tail = block.prev
     
-        # Clean up pointers (optional, but helps avoid accidental bugs)
+        # Clean up pointers
         block.prev = None
         block.next = None
         return block

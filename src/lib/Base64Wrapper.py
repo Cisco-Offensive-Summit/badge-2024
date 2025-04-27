@@ -6,10 +6,7 @@ from badge.log import log
 
 ###############################################################################
 
-class MapSizeException(Exception): pass
 class Base64WrapperException(Exception): pass
-class MemoryBlockException(Exception): pass
-class MemoryBlockListException(Exception): pass
 
 ###############################################################################
 
