@@ -288,6 +288,7 @@ def run():
     next_code_file = None
     try:
         cfg = json.loads(nvm_open(BOOT_CONFIG))
+        log(cfg)
         next_code_file = cfg.get("next_code_file", None)
         log(f'next_code_file: {next_code_file}')
     except Exception as e:
@@ -295,10 +296,12 @@ def run():
         pass
     if next_code_file:
         log("Next code file:", next_code_file)
+        nvm_free(BOOT_CONFIG)
         supervisor.set_next_code_file(next_code_file)
         supervisor.reload()
         sys.exit(0)
     # If continuing, set nvm back to blank and continue as usual
+    nvm_free(BOOT_CONFIG)
     LAUNCHER_UI = LauncherUI(cache_bmps=False)
     asyncio.run(LAUNCHER_UI.run())
 
@@ -313,6 +316,7 @@ def run_at_boot():
     new_config = None
     try:
         new_config = json.loads(nvm_open(BOOT_CONFIG))
+        log(new_config)
     except Exception as e:
         print("nvram new_config json.loads exception:")
         print(repr(e))

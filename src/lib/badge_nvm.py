@@ -59,12 +59,12 @@ class _NVM:
 
         if map_size == 0: #No map needs to create one:
             self.map = {}
-            log("MAP_SIZE = 0: Creating blank map")
+            log("_read_in_map:> MAP_SIZE = 0: Creating blank map")
             self._build_list()
             return
 
         if map_size > self._MAX_MAP_SIZE:
-            log("Recorded map size too large. Setting to Max")
+            log("_read_in_map:> Recorded map size too large. Setting to Max")
             map_size = self._MAX_MAP_SIZE
         # Read the data from NVM based on the map size
         data = board_NVM[self._MAP_START:self._MAP_START + map_size]
@@ -77,13 +77,13 @@ class _NVM:
             self._map = json.loads(decoded_data)
         except ValueError as e:
             # Handle invalid JSON format
-            log(f"Error decoding JSON: {e}")
-            log(f"Map Corruption: RESETTING")
+            log(f"_read_in_map:> Error decoding JSON: {e}")
+            log(f"_read_in_map:> Map Corruption: RESETTING")
             self.map = {}
         except Exception as e:
             # Handle any other errors that may occur
-            log(f"Unexpected error while reading map: {e}")
-            log(f"Map Corruption: RESETTING")
+            log(f"_read_in_map:> Unexpected error while reading map: {e}")
+            log(f"_read_in_map:> Map Corruption: RESETTING")
             self.map = {}
 
         self._build_list()
@@ -93,30 +93,52 @@ class _NVM:
 
     def _build_list(self):
         global _mbl
-
-        mb = _MemoryBlock(self._DATA_START, self._DATA_START + self._MAX_DATA_SIZE, 0)
-        _mbl = _MemoryBlockList(mb)
-
+        MAX = self._NVM_SIZE
+        MIN = self._DATA_START
         # Check if the map is loaded
         if not self.map:
-            log("No map to build from.")
+            mb = _MemoryBlock(self._DATA_START, self._DATA_START + self._MAX_DATA_SIZE, 0)
+            _mbl = _MemoryBlockList(mb)
+            log("_build_list:> No map to build from.")
             return        
 
         # Iterate over the map and create memory blocks for each item
         for key, value in self.map.items():
-            new_block = _MemoryBlock(value[0],value[1], mb._USED)
+            new_block = _MemoryBlock(value[0],value[1], 1)
+            _mbl.insert(new_block)
 
-            # Add this new block to the memory block list
-            if _mbl is None:
-                _mbl = _MemoryBlockList(new_block)  # First block becomes the head
-            else:
-                # Traverse to the end and append
-                current = _mbl.head
-                while current.next is not None:
-                    current = current.next
-                current.next = new_block  # Append new block at the end
+        for block in _mbl:
+            if block.block_type == 1:
+                log("_build_list:> start of loop")
+                start = block.start
+                stop = block.stop
+                # If this is the first in the list and it isn't a FREE block 
+                # Create a free block and inster it into the list.
+                log(f"_build_list:> block.prev {block.prev} | start {start} | stop {stop} | block_type {block.block_type}")
+                if block.prev is None and start is not MIN:
+                    log(f'_build_list:> creating START block from {MIN} to {start}')
+                    mb = _MemoryBlock(MIN, start, 0)
+                    _mbl.insert(mb)
+
+                # It's the last in the list and all the memory isn't accounted for
+                # Create a free block with the size difference between MAX and block.stop
+                log(f"_build_list:> block.next {block.next}")
+                if block.next is None and stop < MAX:
+                    log(f'_build_list:> creating END block from {MAX} to {stop}')
+                    mb = _MemoryBlock(stop, MAX, 0)
+                    _mbl.insert(mb)
+
+                # There is a node behind me. Check if its stop point is less the my start
+                # If it is then create a free block and insert it into the list.
+                log(f"_build_list:> block.prev {block.prev}")
+                if block.prev:
+                    prev_stop = block.prev.stop
+                    if prev_stop < start:
+                        log(f'_build_list:> creating free block from {prev_stop} to {start}')
+                        mb = _MemoryBlock(prev_stop, start, 0)
+                        _mbl.insert(mb)
+        log("_build_list")
         self.print_memory_block_details()
-        log(f"Built memory block list: {_mbl}")
 
     def print_memory_block_details(self):
         current = _mbl.head
@@ -147,7 +169,7 @@ class _NVM:
         board_NVM[self._SIZE_DATA_START:self._SIZE_DATA_START + self._SIZE_DATA_SIZE] = data
 
         if size == 0:
-            log("Warning: The map is empty.")
+            log("_set_size:> Warning: The map is empty.")
 
     def erase_all(self) -> None:
         """Sets the index map size to 0 so a new map will be drawn next read."""
@@ -158,7 +180,8 @@ class _NVM:
 
     def save_data(self, name: str, base64_data: Base64Wrapper):
         """Save data to the NVM and update the map and memory block list."""
-
+        log("save_data")
+        self.print_memory_block_details()
         map = self.map
         # If that save file is already in the list see if we can save it in the same place first
         # If it is the same size, write directly over it.
@@ -227,6 +250,8 @@ class _NVM:
 
     def _find_new_space(self, length: int):
         """Find an available block of memory that can fit the data."""
+        log("_find_new_spaces")
+        self.print_memory_block_details()
         def search():
             current = _mbl.head
             while current:
@@ -251,13 +276,15 @@ class _NVM:
         
     def free_data(self, name: str):
         """Free the data associated with the given name and update the memory block list."""
+        log("free_data")
+        self.print_memory_block_details()
         map_copy = self.map
 
-        try:
-            start, end, data_type = map_copy[name]
-        except KeyError:
-            raise ValueError(f"Data with name '{name}' not found in map.")
-        
+        if name not in map_copy:
+            log(f"free_data:> Data with name '{name}' not found in map.")
+            return
+
+        start, end, data_type = map_copy[name]
         # Mark the corresponding memory block as free
         current = _mbl.head
         while current:
@@ -271,11 +298,11 @@ class _NVM:
         del map_copy[name]
         self.map = map_copy
 
-        log(f"Data with name '{name}' has been freed and removed from map.")
+        log(f"free_data:> Data with name '{name}' has been freed and removed from map.")
 
     def compact_memory(self):
         """Compacts memory by moving used blocks down and merging free space."""
-        log("Starting memory compaction...")
+        log("compact_memory:> Starting memory compaction...")
 
         map_copy = self.map
         current = _mbl.head
@@ -287,7 +314,7 @@ class _NVM:
 
             if current.block_type == current._USED:
                 if current.start != new_position:
-                    log(f"Moving block from {current.start}-{current.stop} to {new_position}-{new_position + block_size}")
+                    log(f"compact_memory:> Moving block from {current.start}-{current.stop} to {new_position}-{new_position + block_size}")
                     # Physically move the data
                     board_NVM[new_position:new_position + block_size] = board_NVM[current.start:current.stop]
                     
@@ -320,7 +347,7 @@ class _NVM:
 
         self.map = map_copy  # Trigger setter to update map storage
 
-        log("Memory compaction completed.")
+        log("compact_memory:> Memory compaction completed.")
 
     @property
     def map(self):
@@ -400,21 +427,4 @@ def print_list():
     print("None")
 
 def print_memory_block_details():
-    current = _mbl.head
-    if not current:
-        print("Memory block list is empty.")
-        return
-    
-    print("Memory Block List:")
-    node_index = 1
-    while current:
-        block_type = "FREE" if current.block_type == 0 else "USED"
-        print(f"Node {node_index}:")
-        print(f"  Start: {current.start}")
-        print(f"  Stop: {current.stop}")
-        print(f"  Block Type: {block_type} (Type Code: {current.block_type})")
-        print(f"  Next Node: {current.next if current.next else 'None'}")
-        print("-" * 30)  # separator between nodes
-        current = current.next
-        node_index += 1
-    print("End of Memory Block List.")
+    _nvm.print_memory_block_details()
