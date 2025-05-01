@@ -1,6 +1,7 @@
 # Imports for WiFi handling, HTTP requests, socket handling, screen rendering, and fonts
 import adafruit_requests
 import socketpool
+import ssl
 import wifi
 from adafruit_display_text.label import Label
 from displayio import Group
@@ -113,7 +114,7 @@ class WIFI:
             if self._update:
                 self._update_status("Getting new requests session")
             # Create a requests object
-            self.requests = adafruit_requests.Session(self.pool).request
+            self.requests = adafruit_requests.Session(self.pool, ssl.create_default_context()).request
         except Exception as e:
             raise WifiSessionException(e)
 
