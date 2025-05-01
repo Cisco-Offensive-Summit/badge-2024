@@ -8,6 +8,10 @@ from badge_nvm import nvm_open
 from time import sleep
 from badge.screens import EPD
 from badge.log import log
+from badge.constants import LOADED_APP
+from badge.constants import BOOT_CONFIG
+from badge.constants import DEFAULT_CONFIG
+
 
 ###############################################################################
 
@@ -67,14 +71,7 @@ if not BTN4.value and not BTN3.value:
 
 ###############################################################################
 
-default_config = {
-    "mount_root_rw": False,
-    "disable_usb_drive": False,
-    "next_code_file": None,
-}
-
 new_config = None
-BOOT_CONFIG = "config"
 
 try:
     new_config = json.loads(nvm_open(BOOT_CONFIG))
@@ -82,7 +79,7 @@ try:
 except KeyError:
     log(f"boot.py: No config found")
 
-boot_config = default_config
+boot_config = DEFAULT_CONFIG
 
 if new_config is not None:
     boot_config.update(new_config)

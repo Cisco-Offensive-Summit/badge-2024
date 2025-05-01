@@ -24,6 +24,9 @@ from badge.buttons import d_pressed as dp
 from badge.constants import BB_HEIGHT
 from badge.constants import BB_WIDTH
 from badge.constants import SITE_BLUE
+from badge.constants import BOOT_CONFIG
+from badge.constants import DEFAULT_CONFIG
+from badge.constants import LOADED_APP
 from badge.events import on
 from badge.fileops import is_dir, is_file
 from badge.log import info, log
@@ -38,7 +41,6 @@ from badge.ziplist import ziplist
 #################### Globals ###############
 
 ### Launcher ###
-BOOT_CONFIG = 'config'
 SELECTO = None # Populate at run()
 
 ### Apps ###
@@ -96,7 +98,7 @@ def d_released(event):
     set_neopixel("d", 0)
     current = SELECTO.current()
     entry = current[0]
-    log("app_launching", entry.code_file, type(entry.code_file))
+    log("app_launching", entry.code_file, type(entry.code_file), entry.appdir)
     launch_app(entry)
 
 ############## Launcher UI #################
@@ -295,23 +297,28 @@ def run():
         log("ERR read_nvm_config", repr(e))
         pass
     if next_code_file:
+        appdir = cfg[LOADED_APP]
+        config = DEFAULT_CONFIG
+        config[LOADED_APP] = appdir
         log("Next code file:", next_code_file)
-        nvm_free(BOOT_CONFIG)
+        set_config(config)        
         supervisor.set_next_code_file(next_code_file)
         supervisor.reload()
         sys.exit(0)
     # If continuing, set nvm back to blank and continue as usual
-    nvm_free(BOOT_CONFIG)
+    set_config()
     LAUNCHER_UI = LauncherUI(cache_bmps=False)
     asyncio.run(LAUNCHER_UI.run())
 
+def set_config(config:dict = None):
+    if not config:
+        config = DEFAULT_CONFIG
+
+    nvm_save(BOOT_CONFIG, json.dumps(config))
+    
+
 def run_at_boot():
     global BOOT_CONFIG
-    default_config = {
-        "mount_root_rw": False,
-        "disable_usb_drive": False,
-        "next_code_file": None,
-    }
 
     new_config = None
     try:
@@ -322,7 +329,7 @@ def run_at_boot():
         print(repr(e))
         print()
 
-    boot_config = default_config
+    boot_config = DEFAULT_CONFIG
 
     if new_config is not None:
         boot_config.update(new_config)
