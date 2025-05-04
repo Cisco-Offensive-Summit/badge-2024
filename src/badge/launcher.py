@@ -290,9 +290,7 @@ def run():
     next_code_file = None
     try:
         cfg = json.loads(nvm_open(BOOT_CONFIG))
-        log(cfg)
         next_code_file = cfg.get("next_code_file", None)
-        log(f'next_code_file: {next_code_file}')
     except Exception as e:
         log("ERR read_nvm_config", repr(e))
         pass
@@ -300,7 +298,6 @@ def run():
         appdir = cfg[LOADED_APP]
         config = DEFAULT_CONFIG
         config[LOADED_APP] = appdir
-        log("Next code file:", next_code_file)
         set_config(config)        
         supervisor.set_next_code_file(next_code_file)
         supervisor.reload()
@@ -323,12 +320,9 @@ def run_at_boot():
     new_config = None
     try:
         new_config = json.loads(nvm_open(BOOT_CONFIG))
-        log(new_config)
     except Exception as e:
-        print("nvram new_config json.loads exception:")
-        print(repr(e))
-        print()
-
+        log(f"nvram new_config json.loads exception: {repr(e)}")
+ 
     boot_config = DEFAULT_CONFIG
 
     if new_config is not None:
@@ -343,66 +337,11 @@ def run_at_boot():
         try:
             disable_usb_drive()
         except Exception as e:
-            print(repr(e))
+            log(repr(e))
 
 
     if boot_config["mount_root_rw"]:
         try:
             remount("/", readonly=False)
         except Exception as e:
-            print(repr(e))
-
-#################### boot ##################
-###
-### Please put the following commented code
-### in your /boot.py file.
-### This is needed to allow apps to write to
-### the filesystem if they specify they it.
-
-"""
-default_config = {
-    "mount_root_rw": False,
-    "disable_usb_drive": False,
-    "next_code_file": None,
-}
-
-new_config = None
-BOOT_CONFIG_START = len(microcontroller.nvm) // 2
-
-# If first byte is 0 then its been cleared
-if microcontroller.nvm[BOOT_CONFIG_START] != 0:
-    try:
-        new_config = json.loads(microcontroller.nvm[BOOT_CONFIG_START:])
-    except Exception as e:
-        print("nvram new_config json.loads exception:")
-        print(repr(e))
-        print()
-
-boot_config = default_config
-
-if new_config is not None:
-    boot_config.update(new_config)
-
-# mount_root_rw needs disable_usb_drive.
-if boot_config["mount_root_rw"]:
-    boot_config["disable_usb_drive"] = True
-
-# Check boot options and do corresponding thing
-if boot_config["disable_usb_drive"]:
-    try:
-        storage.disable_usb_drive()
-    except Exception as e:
-        print(repr(e))
-
-
-if boot_config["mount_root_rw"]:
-    try:
-        storage.remount("/", readonly=False)
-    except Exception as e:
-        print(repr(e))
-
-
-# next_code_file will be set by launcher,
-# then passed back after it hard boots with the updated
-# boot settings
-"""
+            log(repr(e))

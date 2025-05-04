@@ -109,36 +109,27 @@ class _NVM:
 
         for block in _mbl:
             if block.block_type == 1:
-                log("_build_list:> start of loop")
                 start = block.start
                 stop = block.stop
                 # If this is the first in the list and it isn't a FREE block 
                 # Create a free block and inster it into the list.
-                log(f"_build_list:> block.prev {block.prev} | start {start} | stop {stop} | block_type {block.block_type}")
                 if block.prev is None and start is not MIN:
-                    log(f'_build_list:> creating START block from {MIN} to {start}')
                     mb = _MemoryBlock(MIN, start, 0)
                     _mbl.insert(mb)
 
                 # It's the last in the list and all the memory isn't accounted for
                 # Create a free block with the size difference between MAX and block.stop
-                log(f"_build_list:> block.next {block.next}")
                 if block.next is None and stop < MAX:
-                    log(f'_build_list:> creating END block from {MAX} to {stop}')
                     mb = _MemoryBlock(stop, MAX, 0)
                     _mbl.insert(mb)
 
                 # There is a node behind me. Check if its stop point is less the my start
                 # If it is then create a free block and insert it into the list.
-                log(f"_build_list:> block.prev {block.prev}")
                 if block.prev:
                     prev_stop = block.prev.stop
                     if prev_stop < start:
-                        log(f'_build_list:> creating free block from {prev_stop} to {start}')
                         mb = _MemoryBlock(prev_stop, start, 0)
                         _mbl.insert(mb)
-        log("_build_list")
-        self.print_memory_block_details()
 
     def print_memory_block_details(self):
         current = _mbl.head
@@ -180,8 +171,6 @@ class _NVM:
 
     def save_data(self, name: str, base64_data: Base64Wrapper):
         """Save data to the NVM and update the map and memory block list."""
-        log("save_data")
-        self.print_memory_block_details()
         map = self.map
         # If that save file is already in the list see if we can save it in the same place first
         # If it is the same size, write directly over it.
@@ -250,8 +239,6 @@ class _NVM:
 
     def _find_new_space(self, length: int):
         """Find an available block of memory that can fit the data."""
-        log("_find_new_spaces")
-        self.print_memory_block_details()
         def search():
             current = _mbl.head
             while current:
@@ -276,8 +263,6 @@ class _NVM:
         
     def free_data(self, name: str):
         """Free the data associated with the given name and update the memory block list."""
-        log("free_data")
-        self.print_memory_block_details()
         map_copy = self.map
 
         if name not in map_copy:
@@ -302,7 +287,6 @@ class _NVM:
 
     def compact_memory(self):
         """Compacts memory by moving used blocks down and merging free space."""
-        log("compact_memory:> Starting memory compaction...")
 
         map_copy = self.map
         current = _mbl.head
@@ -314,7 +298,6 @@ class _NVM:
 
             if current.block_type == current._USED:
                 if current.start != new_position:
-                    log(f"compact_memory:> Moving block from {current.start}-{current.stop} to {new_position}-{new_position + block_size}")
                     # Physically move the data
                     board_NVM[new_position:new_position + block_size] = board_NVM[current.start:current.stop]
                     
@@ -347,7 +330,6 @@ class _NVM:
 
         self.map = map_copy  # Trigger setter to update map storage
 
-        log("compact_memory:> Memory compaction completed.")
 
     @property
     def map(self):
@@ -408,7 +390,7 @@ def nvm_info():
     """Print a summary of all saved entries in NVM, showing their ranges and data types."""
     print("NVM Map:")
     for name, (start, stop, dtype) in _nvm.map.items():
-        print(f"- {name}: {start}-{stop} ({dtype})")
+        log(f"- {name}: {start}-{stop} ({dtype})")
 
 def nvm_format():
     """Erase the entire NVM, clearing all saved data and resetting the map."""

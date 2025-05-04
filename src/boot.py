@@ -93,13 +93,13 @@ if boot_config["disable_usb_drive"]:
     try:
         storage.disable_usb_drive()
     except Exception as e:
-        print(repr(e))
+        log(repr(e))
 
 if boot_config["mount_root_rw"]:
     try:
         storage.remount("/", readonly=False)
     except Exception as e:
-        print(repr(e))
+        log(repr(e))
 
 
 # next_code_file will be set by launcher,

@@ -19,6 +19,7 @@ from badge.screens import *
 from badge.utils import gen_qr_code
 from badge.wifi import WIFI
 from badge.constants import BB_HEIGHT
+from badge.log import log
 
 
 w = WIFI()
@@ -82,9 +83,6 @@ sleep(0.5)
 #rsp = session.request(method=METHOD,url=URL,json=JSON,headers=HEADERS)
 rsp = w.requests(method=METHOD,url=URL,json=JSON,headers=HEADERS)
 clear_screen(LCD)
-print(URL)
-print(JSON)
-print(rsp.status_code)
 
 # If the request was a sucsess, extract info
 if rsp.status_code == 200:
@@ -106,7 +104,7 @@ else:
   err_label.y = 5
   clear_screen(LCD)
   splash.append(err_label)
-  print(err)
+  log(err)
   for i in range(3):
     NP.fill(RED)
     sleep(0.25)
@@ -132,23 +130,6 @@ splash.append(center_text_y_plane(EPD, center_text_x_plane(EPD, code, scale=3)))
 clear_screen(EPD)
 EPD.root_group.append(splash)
 EPD.refresh()
-
-
-
-# text_width = EPD._font.width(btn_text)
-# font_height = EPD._font.font_height
-# EPD.fill(0)
-# EPD.fill_rect(0, EPD_H - font_height - 10, text_width + 10, font_height + 10, 1)
-# EPD.text(btn_text, 5, EPD_H - font_height - 5, 0)
-# # Print the Register URL to the e-ink display
-# EPD.text("If you can't scan the QR code,:",0,0,1)
-# EPD.text("visit the badge website at:",0,font_height +2,1)
-# EPD.text("badger.becomingahacker.com",0,(font_height +2)*2,1)
-# EPD.text("and click the link 'Register'",0,(font_height +2)*3, 1)
-# EPD.text("to use the code '" + code + "' to ",0,(font_height +2)*4, 1)
-# EPD.text("create a new account.",0,(font_height +2)*5, 1)
-# EPD.draw()
-
 
 triggered_alarm = alarm.light_sleep_until_alarms(S4_pin_alarm)
 if triggered_alarm.pin == S4_pin_alarm.pin:

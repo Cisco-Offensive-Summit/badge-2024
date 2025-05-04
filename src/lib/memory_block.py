@@ -115,40 +115,25 @@ class _MemoryBlockList:
     def remove(self, block: _MemoryBlock):
         """Remove a block from the list."""
         # Sanity check: is block in the list?
-        log(f"Looking for block: ", id(block))
         current = self.head
 
         while current:
-            log("Looking at block:", id(current))
             if current == block:
-                log("Found it")
                 break
             current = current.next
         else:
             # Only happens if we never broke from the loop
             raise MemoryBlockListException("Cannot remove a block that is not in the list.")
-        log("Made it here")
-        block.print()
         # Now it's safe to remove
         if block.prev:
-            log("<PREV>")
-            block.prev.print()
             block.prev.next = block.next
-            log("<PREV_AFTER>")
-            block.prev.print()
         else:
-            log("<BLOCK_WAS HEAD>")
             # Block was head
             self.head = block.next
         if block.next:
-            log("<NEXT>")
-            block.next.print()
             block.next.prev = block.prev
-            log("<NEXT_AFTER>")
-            block.next.print()
         else:
             # Block was tail
-            log("<BLOCK_WAS TAIL>")
             self.tail = block.prev
         # Clean up pointers
         block.prev = None
@@ -173,7 +158,6 @@ class _MemoryBlockList:
         while current is not None:
             if current.next:
                 if current.block_type == 0 and current.next.block_type == 0:
-                    log("About to remove block:", id(current.next))
                     to_remove = current.next
                     current.stop = to_remove.stop
                     self.remove(to_remove)
