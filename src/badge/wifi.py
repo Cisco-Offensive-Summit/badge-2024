@@ -6,6 +6,7 @@ import wifi
 from adafruit_display_text.label import Label
 from displayio import Group
 from terminalio import FONT
+from binascii import hexlify
 
 # Custom modules for UI and logging
 from badge.screens import LCD
@@ -37,7 +38,7 @@ class WIFI:
         self.requests = None              # Will hold the requests.Session
         self.pool = None                  # Will hold the socketpool
         self.host = host                  # Destination host to connect to
-        self._mac = wifi.radio.mac_address
+        self._mac = hexlify(wifi.radio.mac_address).decode('utf-8')
         self._save_screen = None          # For screen restoration
         self._update = update             # Whether to display status messages
 
@@ -79,7 +80,7 @@ class WIFI:
                     if wifi.radio.connected:
                         break
                 except ConnectionError as exc:
-                    print(f"Wifi Connection error...{repr(exc)}")
+                    log(f"Wifi Connection error...{repr(exc)}")
 
         if wifi.radio.ipv4_address:
             log(f"Connected. ssid={self.ssid} ip={wifi.radio.ipv4_address}")

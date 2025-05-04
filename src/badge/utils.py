@@ -2,7 +2,7 @@ import adafruit_miniqr
 import board
 import displayio
 import pwmio
-from badge.log import log
+from .log import log
 
 def bitmap_QR(matrix):
     # monochome (2 color) palette

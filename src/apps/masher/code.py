@@ -21,6 +21,7 @@ from badge.events import ANY_BTN_PRESSED, ANY_BTN_RELEASED
 from badge.log import log
 from badge.neopixels import NP as PIXELS
 from badge.neopixels import neopixels_off, set_neopixel, neopixel_reinit
+from leaderboard import post_to_leaderboard
 from displayio import Group
 from terminalio import FONT
 from time import sleep
@@ -96,11 +97,12 @@ def score_screen(elapsed):
     rs = RainbowSparkle(
         PIXELS, speed=0.1, num_sparkles=1, step=32, precompute_rainbow=True
     )
-    for _ in range(50000):
+    for _ in range(1000):
         rs.animate()
     neopixels_off()
     PIXELS = neopixel_reinit()
 
+    post_to_leaderboard(elapsed)
     return None
 
 
@@ -152,7 +154,6 @@ RACE_START_TIME = None  # None or a ticks_ms() value.
 
 
 def hit_the_lights():
-    log("hit_the_lights")
     rc = RainbowChase(PIXELS, speed=0.075, size=3, spacing=5, step=32)
     for _ in range(random.randrange(10000, 22000)):
         rc.animate()
@@ -169,14 +170,11 @@ async def xmas_tree(answer_button):
     # Hack to get neopixels to work correctly
     global PIXELS
     PIXELS = neopixel_reinit()
-    print(f"xmas-tree:{answer_button}")
     wait_time = random.randrange(1200, 2750)
     await asyncio.sleep_ms(wait_time)  # random sleep between 1250 and 2250 ms
-    print("xmas_tree:set_neopixel on")
     set_neopixel(answer_button, (0, 255, 0))
     # PIXELS.show()
     RACE_START_TIME = supervisor.ticks_ms()
-    print(f"xmas_tree:returning {RACE_START_TIME}")
     return
 
 
@@ -219,11 +217,9 @@ async def play():
             continue
         button = b_pressed
         if button == "A":
-            # print(f"play.PRESS_RELEASE = {button}")
             keep_playing = False
             break
         if button == "D":
-            # print(f"play.PRESS_RELEASE = {button}")
             keep_playing = True
             break
         continue
@@ -238,8 +234,6 @@ async def main():
     keep_playing = True
     while keep_playing:
         keep_playing = await play()
-        print(f"main. keep_playing={keep_playing}")
-    print("main.reloading")
     supervisor.reload()
 
 
