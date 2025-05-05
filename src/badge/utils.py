@@ -2,6 +2,7 @@ import adafruit_miniqr
 import board
 import displayio
 import pwmio
+from .log import log
 
 def bitmap_QR(matrix):
     # monochome (2 color) palette
@@ -53,10 +54,10 @@ def list_pwm_pins():
       try:
           p = pwmio.PWMOut(pin)
           p.deinit()
-          print("PWM on:", pin_name)
+          log("PWM on:", pin_name)
       except ValueError:
-          print("No PWM on:", pin_name)
+          log("No PWM on:", pin_name)
       except RuntimeError:
-          print("Timers in use:", pin_name)
+          log("Timers in use:", pin_name)
       except TypeError:
           pass

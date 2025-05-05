@@ -10,6 +10,7 @@ import badge.buttons
 from badge.events import on
 import badge.events as evt
 from badge.constants import EPD_SMALL, BB_HEIGHT, BB_WIDTH
+from badge.log import log
 
 IMG_DIR = '/img'
 
@@ -182,7 +183,7 @@ async def main_loop():
             elif e == evt.BTN_D_DOWNUP:
                 draw_bmp(bmp_list[file_acc].text)
             else:
-                print("Unknown Button")
+                log("Unknown Button")
     
     raise Exit("Goodbye!")
 
@@ -199,7 +200,7 @@ supervisor.runtime.autoreload = False
 try:
     asyncio.run(main())
 except Exit as e:
-    print(f"{e}")
+    log(f"{e}")
 except Exception as e:
     epd_print_exception(e)
     time.sleep(60)

@@ -34,3 +34,14 @@ YELLOW = 0xFFFF00
 CYAN = 0x00FFFF
 MAGENTA = 0xFF00FF
 SITE_BLUE = 0x3453FF
+
+###############################################################################
+# MISC
+LOADED_APP = 'loaded_app'
+BOOT_CONFIG = 'config'
+DEFAULT_CONFIG = {
+    "mount_root_rw": False,
+    "disable_usb_drive": False,
+    "next_code_file": None,
+    "loaded_app" : None
+}

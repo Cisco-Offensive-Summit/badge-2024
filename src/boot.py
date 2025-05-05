@@ -3,9 +3,15 @@ import digitalio
 import json
 import microcontroller
 import storage
-import supervisor                                                                                     
+import supervisor
+from badge_nvm import nvm_open                                                                                     
 from time import sleep
 from badge.screens import EPD
+from badge.log import log
+from badge.constants import LOADED_APP
+from badge.constants import BOOT_CONFIG
+from badge.constants import DEFAULT_CONFIG
+
 
 ###############################################################################
 
@@ -65,25 +71,15 @@ if not BTN4.value and not BTN3.value:
 
 ###############################################################################
 
-default_config = {
-    "mount_root_rw": False,
-    "disable_usb_drive": False,
-    "next_code_file": None,
-}
-
 new_config = None
-BOOT_CONFIG_START = len(microcontroller.nvm) // 2
 
-# If first byte is 0 then its been cleared
-if microcontroller.nvm[BOOT_CONFIG_START] != 0:
-    try:
-        new_config = json.loads(microcontroller.nvm[BOOT_CONFIG_START:])
-    except Exception as e:
-        print("nvram new_config json.loads exception:")
-        print(repr(e))
-        print()
+try:
+    new_config = json.loads(nvm_open(BOOT_CONFIG))
+    log(f'Config read from NVM: {new_config}')
+except KeyError:
+    log(f"boot.py: No config found")
 
-boot_config = default_config
+boot_config = DEFAULT_CONFIG
 
 if new_config is not None:
     boot_config.update(new_config)
@@ -97,14 +93,13 @@ if boot_config["disable_usb_drive"]:
     try:
         storage.disable_usb_drive()
     except Exception as e:
-        print(repr(e))
-
+        log(repr(e))
 
 if boot_config["mount_root_rw"]:
     try:
         storage.remount("/", readonly=False)
     except Exception as e:
-        print(repr(e))
+        log(repr(e))
 
 
 # next_code_file will be set by launcher,

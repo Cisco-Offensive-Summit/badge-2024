@@ -14,6 +14,7 @@ except ImportError:
 # for step sequencer lights
 from badge.neopixels import set_neopixels
 from badge.colors import CYAN,MAGENTA,OFF
+from badge.log import log
 COLORDIFF = MAGENTA - CYAN
 
 class SequencerApp:
@@ -96,7 +97,6 @@ class SequencerApp:
                     pass
 
     def _play_sequences(self):
-        print("main screen turn on")
         INDEX       = 0
         TONES       = [[0,"C4",60,262],[1,"D4",62,294],[2,"E4",64,330],[3,"F4",65,349],[4,"G4",67,392],[5,"A4",69,440],[6,"B4",71,494],[7,"C5",72,523],[8,None,None,None]]
         NOTE        = 1
@@ -225,33 +225,33 @@ class SequencerApp:
                 if event.key_number == 0:
                     if MENU == 0:
                         if TEMPO == (MAXTEMPO):
-                            print(f"maximum tempo of {TEMPOS[TEMPO][0]}bpm reached")
+                            log(f"maximum tempo of {TEMPOS[TEMPO][0]}bpm reached")
                             root.append(error_splash)
                             time.sleep(0.05)
                             root.pop()
                         else:
                             TEMPO = TEMPO + 1
-                            print(f"increasing tempo to {TEMPOS[TEMPO][0]}bpm")
+                            log(f"increasing tempo to {TEMPOS[TEMPO][0]}bpm")
                             tempo_label.text=f"{TEMPOS[TEMPO][0]}bpm"
                     elif MENU == 1:
                         if NUMSTEPS == (MAXSTEPS+1):
-                            print(f"maximum sequence length of {NUMSTEPS} steps reached")
+                            log(f"maximum sequence length of {NUMSTEPS} steps reached")
                             root.append(error_splash)
                             time.sleep(0.05)
                             root.pop()
                         else:
                             NUMSTEPS = NUMSTEPS + 1
-                            print(f"increasing sequence length to {NUMSTEPS} steps")
+                            log(f"increasing sequence length to {NUMSTEPS} steps")
                             sequence_label.text=f"{NUMSTEPS} step(s)"
                     elif MENU == 2:
                         if STEP == (NUMSTEPS-1):
-                            print(f"you're at the last step (#{STEP+1})")
+                            log(f"you're at the last step (#{STEP+1})")
                             root.append(error_splash)
                             time.sleep(0.05)
                             root.pop()
                         else:
                             STEP = STEP + 1
-                            print(f"going to next step (#{STEP+1})")
+                            log(f"going to next step (#{STEP+1})")
                             step_label.text=f"step {STEP+1}/{NUMSTEPS}"
                     elif MENU == 3:
                         # steps: STEP:[WAVES[WAVE][index,waveform],TONES[TONE][index,note,midi,frequency]]
@@ -261,41 +261,41 @@ class SequencerApp:
                         else:
                             STEPS[STEP][1] = TONES[MINTONE]
                         wavetone_label.text=f"{STEPS[STEP][0][1]}|{STEPS[STEP][1][1]}"
-                        print(f"going from a {TONES[current_tone][1]} to a {STEPS[STEP][1][1]}")
+                        log(f"going from a {TONES[current_tone][1]} to a {STEPS[STEP][1][1]}")
                     else:
-                        print("you shouldn't be here")
+                        log("you shouldn't be here")
                         pass
 
                 if event.key_number == 1:
                     if MENU == 0:
                         if TEMPO == MINTEMPO:
-                            print(f"minimum tempo of {TEMPOS[TEMPO][0]}bpm reached")
+                            log(f"minimum tempo of {TEMPOS[TEMPO][0]}bpm reached")
                             root.append(error_splash)
                             time.sleep(0.05)
                             root.pop()
                         else:
                             TEMPO = TEMPO - 1
-                            print(f"decreasing tempo to {TEMPOS[TEMPO][0]}bpm")
+                            log(f"decreasing tempo to {TEMPOS[TEMPO][0]}bpm")
                             tempo_label.text=f"{TEMPOS[TEMPO][0]}bpm"
                     elif MENU == 1:
                         if NUMSTEPS == (MINSTEPS+1):
-                            print(f"minimum sequence length of {NUMSTEPS} steps reached")
+                            log(f"minimum sequence length of {NUMSTEPS} steps reached")
                             root.append(error_splash)
                             time.sleep(0.05)
                             root.pop()
                         else:
                             NUMSTEPS = NUMSTEPS - 1
-                            print(f"decreasing sequence length to {NUMSTEPS} steps")
+                            log(f"decreasing sequence length to {NUMSTEPS} steps")
                             sequence_label.text=f"{NUMSTEPS} step(s)"
                     elif MENU == 2:
                         if STEP == (MINSTEPS):
-                            print(f"you're at the first step (#{STEP+1})")
+                            log(f"you're at the first step (#{STEP+1})")
                             root.append(error_splash)
                             time.sleep(0.05)
                             root.pop()
                         else:
                             STEP = STEP - 1
-                            print(f"going to previous step (#{STEP+1})")
+                            log(f"going to previous step (#{STEP+1})")
                             step_label.text=f"step {STEP+1}/{NUMSTEPS}"
                     elif MENU == 3:
                         # steps: STEP:[WAVES[WAVE][index,waveform],TONES[TONE][index,note,midi,frequency]]
@@ -304,16 +304,16 @@ class SequencerApp:
                             STEPS[STEP][0] = WAVES[current_wave + 1]
                         else:
                             STEPS[STEP][0] = WAVES[MINWAVE]
-                        print(f"changing from a {WAVES[current_wave][1]} wave to a {STEPS[STEP][0][1]} wave")
+                        log(f"changing from a {WAVES[current_wave][1]} wave to a {STEPS[STEP][0][1]} wave")
                         wavetone_label.text=f"{STEPS[STEP][0][1]}|{STEPS[STEP][1][1]}"
                     else:
-                        print("you shouldn't be here")
+                        log("you shouldn't be here")
                         pass
 
                 if event.key_number == 2:
                     if (MENU < MAXMENU):
                         MENU = MENU + 1
-                        print(f"now in the {MENUKEY[MENU]} menu")
+                        log(f"now in the {MENUKEY[MENU]} menu")
                         # change labels
                         button_3.text=f"{MENUS[MENU][3]}"
                         if MENU == 0:
@@ -331,12 +331,12 @@ class SequencerApp:
                         wavetone_label.text=f"{STEPS[STEP][0][1]}|{STEPS[STEP][1][1]}"
                         main_area.append(labels_index[MENU])
                     else:
-                        print("unable to step into next menu")
+                        log("unable to step into next menu")
 
                 if event.key_number == 3:
                     if (MENU > MINMENU):
                         MENU = MENU - 1
-                        print(f"now in the {MENUKEY[MENU]} menu")
+                        log(f"now in the {MENUKEY[MENU]} menu")
                         # change menu labels
                         button_3.text=f"{MENUS[MENU][3]}"
                         if MENU == 0:
@@ -354,7 +354,7 @@ class SequencerApp:
                         wavetone_label.text=f"{STEPS[STEP][0][1]}|{STEPS[STEP][1][1]}"
                         main_area.append(labels_index[MENU])
                     else:
-                        print(f"playing sequence with a {TEMPOS[TEMPO][0]}bpm tempo")
+                        log(f"playing sequence with a {TEMPOS[TEMPO][0]}bpm tempo")
                         root.append(play_screen)
                         ### play note
                         for i in range(NUMSTEPS):
@@ -377,7 +377,7 @@ class SequencerApp:
                             else:
                                 set_neopixels(OFF,OFF,OFF,COLOR)
                             if STEPS[i][1][1] == None:
-                                print(f"step {STEP+1} is an empty step")
+                                log(f"step {STEP+1} is an empty step")
                                 time.sleep(TEMPOS[TEMPO][1]/1000)
                             else:
                                 # Generate one period of sine wave.

@@ -3,6 +3,8 @@ import os
 
 from .fileops import is_dir, is_file
 from .log import log
+from badge.constants import DEFAULT_CONFIG
+from badge.constants import LOADED_APP
 
 APPS_DIR = "/apps"
 DEFAULT_ICON = "/badge/img/app-default.bmp"
@@ -46,11 +48,19 @@ class App:
     @property
     def boot_config(self):
         boot_json_file = f"{self.appdir}/boot.json"
+        new_config = DEFAULT_CONFIG
+        new_config[LOADED_APP] = self.appdir
+        config = None
         try:
-            return json.load(open(boot_json_file, "r"))
+            config = json.load(open(boot_json_file, "r"))
         except Exception:
             # log(f"App.boot_config err\n{repr(e)}")
-            return None
+            pass
+        
+        if config:
+            new_config.update(config)
+
+        return new_config
 
     @property
     def app_name(self):

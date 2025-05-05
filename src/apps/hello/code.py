@@ -204,12 +204,10 @@ def main():
 
   # if there is saved hello screen info, load that.
   if hello_json:
-    print("exists")
     clear_screen(EPD)
     build_name_tag(hello_json)
 
   else:
-    print("doesn't exist")
     set_default_background()
 
   while True:

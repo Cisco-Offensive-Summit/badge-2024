@@ -1,10 +1,12 @@
 # Imports for WiFi handling, HTTP requests, socket handling, screen rendering, and fonts
 import adafruit_requests
 import socketpool
+import ssl
 import wifi
 from adafruit_display_text.label import Label
 from displayio import Group
 from terminalio import FONT
+from binascii import hexlify
 
 # Custom modules for UI and logging
 from badge.screens import LCD
@@ -36,7 +38,7 @@ class WIFI:
         self.requests = None              # Will hold the requests.Session
         self.pool = None                  # Will hold the socketpool
         self.host = host                  # Destination host to connect to
-        self._mac = wifi.radio.mac_address
+        self._mac = hexlify(wifi.radio.mac_address).decode('utf-8')
         self._save_screen = None          # For screen restoration
         self._update = update             # Whether to display status messages
 
@@ -78,7 +80,7 @@ class WIFI:
                     if wifi.radio.connected:
                         break
                 except ConnectionError as exc:
-                    print(f"Wifi Connection error...{repr(exc)}")
+                    log(f"Wifi Connection error...{repr(exc)}")
 
         if wifi.radio.ipv4_address:
             log(f"Connected. ssid={self.ssid} ip={wifi.radio.ipv4_address}")
@@ -113,7 +115,7 @@ class WIFI:
             if self._update:
                 self._update_status("Getting new requests session")
             # Create a requests object
-            self.requests = adafruit_requests.Session(self.pool).request
+            self.requests = adafruit_requests.Session(self.pool, ssl.create_default_context()).request
         except Exception as e:
             raise WifiSessionException(e)
 
