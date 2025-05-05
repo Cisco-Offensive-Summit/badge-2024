@@ -7,10 +7,16 @@ import supervisor
 from badge_nvm import nvm_open                                                                                     
 from time import sleep
 from badge.screens import EPD
+from badge.screens import center_text_x_plane
+from badge.screens import center_text_y_plane
+from badge.screens import clear_screen
 from badge.log import log
 from badge.constants import LOADED_APP
 from badge.constants import BOOT_CONFIG
 from badge.constants import DEFAULT_CONFIG
+from displayio import Group
+from terminalio import FONT
+from adafruit_display_text.label import Label
 
 
 ###############################################################################
@@ -58,11 +64,10 @@ if not BTN4.value and not BTN3.value:
   from get_token import get_token
   success = get_token()
   if success:
-    tag_height = EPD._font.font_height * 5
-    tag_width = EPD._font.width("nobody") * 5
-    EPD.fill(0)
-    EPD.text("nobody", (EPD.width - tag_width) // 2, (EPD.height - tag_height) // 2, color=1, size=5)
-    EPD.draw()
+    nobody = center_text_y_plane(EPD, center_text_x_plane(EPD, Label(font=FONT, text='nobody', scale=3)))
+    clear_screen(EPD)
+    EPD.root_group.append(nobody)
+    EPD.refresh()
     while True:
       pass
 
