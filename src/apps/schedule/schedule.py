@@ -403,7 +403,7 @@ class ScheduleApp:
 
             if server_sched_hash["hash"] != sched_hash:
                 loading.set_text("New schedule found, replacing old file...")
-                resp = w.requests.get(self.sched_endpoint, data=data, headers=headers)
+                resp = w.requests(method='GET', url=self.sched_endpoint, data=data, headers=headers)
                 new_sched = self._handle_resp(resp)
                 with open('/apps/schedule/sched.json', 'w') as f:
                     f.write(new_sched.dumps())
