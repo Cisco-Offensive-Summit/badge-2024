@@ -5,17 +5,27 @@ import time
 
 import board
 import supervisor
-import terminalio
+from terminalio import FONT
 from adafruit_led_animation.animation.rainbowsparkle import RainbowSparkle
+from adafruit_display_text.label import Label
+from displayio import Group
+
 
 import badge.buttons
 import badge.events as evt
 from badge.buttons import any_button_downup
 from badge.constants import BLACK, WHITE
-from badge.screens import EPD, epd_round_button, epd_center_text, epd_print_exception
+from badge.screens import EPD
+from badge.screens import round_button
+from badge.screens import epd_print_exception
+from badge.screens import center_text_x_plane
+from badge.screens import center_text_y_plane
+from badge.screens import wrap_message
+from badge.screens import set_background
 from badge.events import on
 from badge.log import dbg, info
 from badge.neopixels import neopixels_off, set_neopixel
+from leaderboard import post_to_leaderboard
 
 DEBUG = False
 
@@ -58,33 +68,43 @@ def on_d_pressed(e):
 def on_a_released(e):
     set_neopixel("d", 0)
 
-def background():
-    EPD.fill(0)
-
 def button_row():
+    splash = Group()
     radius = 5
-    epd_round_button("Quit", 5 + radius, EPD.height - 5 - radius - EPD._font.font_height, radius)
-    epd_round_button("Try again", EPD.width - 5 - radius - EPD._font.width("Try again"), EPD.height - 5 - radius - EPD._font.font_height, radius)
+    QUIT='Quit'
+    AGAIN = 'Again'
+    quit_lb = Label(font=FONT, text=QUIT)
+    again_lb = Label(font=FONT, text=AGAIN)
+    quit_bt = round_button(quit_lb, 5 + radius, EPD.height - 5 - radius - (quit_lb.height//2), radius)
+    again_bt = round_button(again_lb, EPD.width - 5 - radius - again_lb.width, EPD.height - 5 - radius - (again_lb.height//2), radius)
+    splash.append(quit_bt)
+    splash.append(again_bt)
+    EPD.root_group.append(splash)
 
 def welcome_screen():
+    splash = Group()
     title = "It's not Simon!"
-    subtitle1 = "Watch the pattern, remember it."
-    subtitle2 = "Repeat it!"
     subtitle3 = "[ PRESS ANY BUTTON TO START ]"
 
-    background()
-    epd_center_text(title, 2, scale=2)
-    epd_center_text(subtitle1, 40)
-    epd_center_text(subtitle2, 50)
-    epd_center_text(subtitle3, 85)
-    EPD.draw()
+    set_background(EPD, BLACK)
+    splash.append(center_text_x_plane(EPD, title))
+    splash.append(
+        center_text_y_plane(EPD,
+        center_text_x_plane(EPD, 
+        wrap_message(EPD, subtitle3)
+    )))
+    EPD.root_group.append(splash)
+    EPD.refresh()
 
 def score_screen(score):
-    background()
-    EPD.text('Score:', 2, 2, 1, size=2)
-    epd_center_text(f"{score}", 25, scale=4)
+    set_background(EPD, BLACK)
+    score_title_lb = Label(font=FONT, text='Score:', x=2, y=(FONT.bitmap.height//2) + 2, scale=2)
+    score_lb = center_text_y_plane(EPD, center_text_x_plane(EPD, f"{score}", scale=4))
+    EPD.root_group.append(score_title_lb)
+    EPD.root_group.append(score_lb)
     button_row()
-    EPD.draw()
+    EPD.refresh()
+    post_to_leaderboard(score)
 
     # rs = RainbowSparkle(
     #     PIXELS, speed=0.1, num_sparkles=1, step=32, precompute_rainbow=True
