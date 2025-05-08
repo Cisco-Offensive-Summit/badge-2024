@@ -16,10 +16,6 @@ except ImportError:
     e = AttributeError("Secrets file is missing. Please visit:\nbadger.becomingahacker.com /recovery")
     epd_print_exception(e)
     time.sleep(60)
-except AttributeError:
-    e = AttributeError("Secrets file is missing required information. Please visit:\nbadger.becomingahacker.com /recovery")
-    epd_print_exception(e)
-    time.sleep(60)
 except Exception as e:
     epd_print_exception(e)
     time.sleep(60)
