@@ -4,15 +4,16 @@ from displayio import Group
 import adafruit_requests
 import json
 
+from os import stat
 from microcontroller import nvm
 from adafruit_display_text import label, wrap_text_to_pixels
 from adafruit_display_text.scrolling_label import ScrollingLabel
 
 from adafruit_st7735r import ST7735R
-from adafruit_hashlib import md5
 import badge.neopixels
 from badge.wifi import WIFI
 from badge.constants import EPD_SMALL, EPD_WIDTH, EPD_HEIGHT, LCD_WIDTH, WHITE, BLACK
+from badge.log import log
 
 # Convert meta integer to date string
 def meta_date(meta: int) -> str:
@@ -359,8 +360,8 @@ class ScheduleApp:
         self.ssid = ssid
         self.wifipass = wifipass
         self.unique_id = unique_id
-        self.sched_endpoint = f"{base_endpoint}/badge/schedule"
-        self.sched_hash_endpoint = f"{base_endpoint}/badge/schedule_hash"
+        self.sched_endpoint = f"{base_endpoint}badge/schedule"
+        self.sched_time_endpoint = f"{base_endpoint}badge/schedule_time"
 
         self.buttons = keypad.Keys((
             board.BTN1,
@@ -373,7 +374,7 @@ class ScheduleApp:
     def _handle_resp(self, resp) -> {}:
         sc = resp.status_code
         if sc == 200:
-            return resp.json()
+            return json.loads(resp.text)
         elif sc == 404:
             raise EndpointNotReachable(f"Could not reach endpoint: {self.sched_endpoint}.")
         elif sc >= 400 and sc < 500:
@@ -384,40 +385,43 @@ class ScheduleApp:
 
     # Get schedule from server
     def _get_schedule(self, loading) -> {}:
-        sched_hash = ""
+        disk_sched = None
+        disk_sched_time = 0
         try:
-            with open('/apps/schedule/sched.json', 'rb') as f:
-                m = md5()
-                m.update(f.read())
-                sched_hash = m.hexdigest()
+            # Check file size
+            if stat('/apps/schedule/sched.json')[6] != 0:
+                with open('/apps/schedule/sched.json', 'r') as f:
+                    log("Schedule file exists")
+                    disk_sched = json.load(f)
+                    disk_sched_time = disk_sched["time"]
+            else:
+                log("Schedule file exists but is empty")
         except OSError:
-            pass
-        
+            log("Schedule file does not exist")
+
         w = WIFI()
         if w.connect_wifi():
             headers = {"Content-Type": "application/json"}
             data = {"uniqueID": self.unique_id}
             
-            server_hash_resp = w.requests.get(self.sched_hash_endpoint, data=data, headers=headers)
-            server_sched_hash = self._handle_resp(server_hash_resp)
+            server_time_resp = w.requests(method="GET", url=self.sched_time_endpoint, json=data, headers=headers)
+            server_sched_time = self._handle_resp(server_time_resp)["time"]
 
-            if server_sched_hash["hash"] != sched_hash:
+            if server_sched_time != disk_sched_time:
+                log("New schedule found, replacing old file...")
                 loading.set_text("New schedule found, replacing old file...")
-                resp = w.requests(method='GET', url=self.sched_endpoint, data=data, headers=headers)
+                resp = w.requests(method='GET', url=self.sched_endpoint, json=data, headers=headers)
                 new_sched = self._handle_resp(resp)
                 with open('/apps/schedule/sched.json', 'w') as f:
-                    f.write(new_sched.dumps())
-                return new_sched
+                    f.write(json.dumps(new_sched))
+                return new_sched["schedule"]
 
-        try:
-            with open("apps/schedule/sched.json") as f:
-                return json.load(f)
-        except OSError as e:
-            # File not found 
-            if e.errno == 2:
-                raise CantFetchSchedule(f"No local schedule available and cannot fetch from badge network.")
-            else:
-                raise e
+        if disk_sched != None:
+            log("Using on-disk file")
+            return disk_sched["schedule"]
+        else:
+            log("No schedule on disk, and cannot connect to badge network")
+            raise CantFetchSchedule(f"No local schedule available and cannot fetch from badge network.")
 
     # Sort schedule
     def _get_schedule_list(self, json: str):
@@ -479,6 +483,7 @@ class ScheduleApp:
                 # BTN1 Select
                 if event.key_number == 0:
                     talk = select.get_talk()
+                    log(f"Displaying talk: {talk["title"]}")
                     title.set_data(talk["title"], talk["track"], talk["meta"])
                     lcd_main_group.pop()
                     lcd_main_group.append(title.get_group())
@@ -529,6 +534,7 @@ class ScheduleApp:
 
                 # BTN2 Exit
                 elif event.key_number == 1:
+                    log("Exiting")
                     for i in range(len(lcd_main_group)):
                         lcd_main_group.pop()
                     return
