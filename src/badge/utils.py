@@ -2,7 +2,10 @@ import adafruit_miniqr
 import board
 import displayio
 import pwmio
+import secrets
+import os
 from .log import log
+from .wifi import WIFI
 
 def bitmap_QR(matrix):
     # monochome (2 color) palette
@@ -61,3 +64,40 @@ def list_pwm_pins():
           log("Timers in use:", pin_name)
       except TypeError:
           pass
+
+###############################################################################
+
+def download_file(file:str, wifi:WIFI) -> bool:
+    body = {
+        'uniqueID' : secrets.UNIQUE_ID,
+        "file": file
+    }
+    rsp = wifi.requests(method="GET",url=wifi.host + "badge/download", json=body, stream=True)               
+    if rsp.status_code < 400:
+        file = '/' + file  
+        ensure_dirs_exist(file)
+        with open(file, 'wb') as f:
+            for chunk in rsp.iter_content(chunk_size=1024 * 8):
+                if chunk:
+                    f.write(chunk)
+                    f.flush()
+                    os.sync()
+        
+        return True
+    else:
+        log('Error: unable to download file')
+        log('Returned: ' + str(rsp.status_code))
+      
+        return False
+
+###############################################################################
+
+def ensure_dirs_exist(path):
+    parts = path.strip("/").split("/")[:-1]
+    current_path = ""
+    for part in parts:
+        current_path = current_path + "/" + part if current_path else part
+        try:
+            os.mkdir(current_path)
+        except OSError:
+            pass  # Directory exists

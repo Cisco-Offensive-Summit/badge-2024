@@ -135,7 +135,7 @@ def request_data(hello_json):
     font_file = rsp_body_json['font_file']
     body = {
       'uniqueID' : secrets.UNIQUE_ID,
-      "font_file": font_file
+      "file": font_file
     }
     rsp = session.request(method="GET",url=HOST + "badge/download", json=body, stream=True)               
     if rsp.status_code < 400:
