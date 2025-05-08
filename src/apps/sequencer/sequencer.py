@@ -1,6 +1,15 @@
-import array,board,random,time,keypad,math
-import displayio,digitalio,terminalio
+import array,board,time,keypad,math
+import displayio,terminalio
+from displayio import Group
+from displayio import TileGrid
 from adafruit_display_text import label
+from badge.screens import EPD
+from badge.screens import LCD
+from badge.screens import center_text_x_plane
+from badge.screens import clear_screen
+from badge.screens import round_button
+from badge.ziplist import ziplist
+
 # for I2S DAC to function
 import synthio,audiocore,audiobusio
 from audiocore import RawSample
@@ -17,7 +26,7 @@ from badge.colors import CYAN,MAGENTA,OFF
 COLORDIFF = MAGENTA - CYAN
 
 class SequencerApp:
-    def __init__(self,lcd: ST7735R,epd: EPD):
+    def __init__(self,lcd: LCD,epd: EPD):
         self.lcd = lcd
         self.epd = epd
         self.buttons = keypad.Keys((
@@ -35,11 +44,43 @@ class SequencerApp:
         pass
 
     def run(self):
-        self.epd.image("img/sequencer.bmp")
-        self.epd.draw()
+
+        self._init_epd()
 
         while self._init_screen():
             self._play_sequences()
+
+    def _init_epd(self):
+        # B1 = "S4 Next"
+        # B2 = "S7 Run"
+        # SUMMIT = "Offensive Summit"
+        # HEADER = "Select An App"
+        scale = 1
+        # button_rad = 5
+        splash = Group()
+
+        # SUMMIT_lb = center_text_x_plane(EPD, SUMMIT)
+        # HEADER_lb = center_text_x_plane(EPD, HEADER, scale=scale)
+        # HEADER_lb.y = (EPD.height //2) - ((HEADER_lb.bounding_box[BB_HEIGHT] * scale) // 2)
+
+        # B1_lb = Label(font=FONT,text=B1)
+        # B1_x = button_rad
+        # B1_y = EPD.height - button_rad - ((B1_lb.bounding_box[BB_HEIGHT]*scale)//2)
+
+        # B2_lb = Label(font=FONT,text=B2)
+        # B2_x = EPD.width - button_rad - B2_lb.bounding_box[BB_WIDTH]
+        # B2_y = EPD.height - button_rad - ((B2_lb.bounding_box[BB_HEIGHT]*scale)//2)
+        bitmap = displayio.OnDiskBitmap(open("apps/sequencer/sequencer.bmp", "rb"))
+        image = displayio.TileGrid(bitmap, pixel_shader=bitmap.pixel_shader)
+
+        clear_screen(EPD)
+        splash.append(image) # shows the image
+        # splash.append(SUMMIT_lb)
+        # splash.append(HEADER_lb)
+        # splash.append(round_button(B1_lb, B1_x, B1_y, 5))
+        # splash.append(round_button(B2_lb, B2_x, B2_y, 5))
+        EPD.root_group = splash
+        EPD.refresh()
 
     def _init_screen(self):
 
@@ -72,7 +113,7 @@ class SequencerApp:
         root.append(dac_label)
         root.append(dac_status)
         root.append(exit_label)
-        self.lcd.show(root)
+        self.lcd.root_group = root
 
         self.buttons.events.clear()
         while True:
@@ -217,7 +258,7 @@ class SequencerApp:
         root = displayio.Group()
         root.append(button_labels)
         root.append(main_area)
-        self.lcd.show(root)
+        self.lcd.root_group = root
 
         while True:
             event = self.buttons.events.get()
@@ -382,8 +423,8 @@ class SequencerApp:
                             else:
                                 # Generate one period of sine wave.
                                 tone_volume_sine   = 0.5  # Increase this to increase the volume of the tone.
-                                tone_volume_square = 0.3
-                                tone_volume_saw    = 0.3
+                                tone_volume_square = 0.1
+                                tone_volume_saw    = 0.7
                                 tone_volume_tri    = 0.5
                                 #tone_volume_ssaw   = 0.2
                                 length = 8000 // t
