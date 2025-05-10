@@ -68,6 +68,7 @@ def list_pwm_pins():
 ###############################################################################
 
 def download_file(file:str, wifi:WIFI) -> bool:
+    log(f"download_file: file = {file}")
     body = {
         'uniqueID' : secrets.UNIQUE_ID,
         "file": file
