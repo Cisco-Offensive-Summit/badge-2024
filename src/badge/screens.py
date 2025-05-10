@@ -116,9 +116,10 @@ def wrap_message(screen, message, font=FONT, x=0, y=None, scale=1):
 #   splash = round_button(lb, 10, 15, 5)
 #   LCD.root_group = splash
 #
-def round_button(label:Label, x, y, rad, color=WHITE, fill=None ,stroke=1):
+def round_button(label:Label, x, y, rad, color=None, fill=None ,stroke=1):
   scale = label.scale
-  label.color = color
+  if not color:
+    color = label.color
   label.x = x
   label.y = y
   t_height = label.bounding_box[BB_HEIGHT] * scale
@@ -126,7 +127,7 @@ def round_button(label:Label, x, y, rad, color=WHITE, fill=None ,stroke=1):
   total_width = t_width + (rad * 2)
   total_height = t_height + (rad * 2)
   rect_x = x - rad
-  rect_y = y - ((t_height//2) + rad)
+  rect_y = y - rad - ((label.font.get_bounding_box()[1]*scale)//2)
   
   rect = RoundRect(x=rect_x, y=rect_y, width=total_width, height=total_height, 
          r=rad, fill=fill, outline=color, stroke=stroke)
