@@ -34,6 +34,7 @@ wifi = WIFI()
 LIST_SCREEN_BUTTONS = ['S4-EXIT','S5-Down','S6-Up','S7-Sel']
 DET_SCREEN_BUTTONS = ['S4-Back','S5-Del','S6-    ','S7-Inst']
 
+# AppStore class handles fetching, displaying, installing, and deleting apps
 class AppStore:
     def __init__(self, wifi):
         self._page = None
@@ -44,14 +45,15 @@ class AppStore:
         self.screen = Group()
 
         self.wifi = wifi
-        self.page = 'list'
+        self.page = 'list'  # default screen is app list
         self.details_options = ["Install", "Delete", "Info", "Back"]
         self.details_index = 0
 
+    # Property getter/setter for page transitions
     @property
     def page(self) -> str:
         return self._page
-    
+
     @page.setter
     def page(self, p) -> None:
         if self._page != p:
@@ -63,6 +65,7 @@ class AppStore:
             else:
                 raise ValueError(f"Unknown value for page {self._page}")
 
+    # Draw the menu based on the current page
     def draw_menu(self) -> None:
         clear_screen(self.LCD)
         if self.page == 'list':
@@ -71,7 +74,8 @@ class AppStore:
             else:
                 msg = self.app_list[self.current_index]['appName']
 
-            banner = Group()  
+            # Create banner UI
+            banner = Group()
             banner_height = 15
             background = Bitmap(128, banner_height, 1)
             background_palette = Palette(1)
@@ -81,6 +85,7 @@ class AppStore:
             banner.append(background_tile_grid)
             banner.append(os_lb)
 
+            # Create button for app name
             app_lb = center_text_y_plane(LCD, center_text_x_plane(LCD, wrap_message(LCD, msg, scale=1)))
             color = rrhc(20)
             app_btn = round_button(app_lb, app_lb.x, app_lb.y, 10, color=color, fill=None ,stroke=3)
@@ -88,13 +93,14 @@ class AppStore:
             self.LCD.root_group.append(banner)
             self.LCD.root_group.append(app_btn)
 
-        else: #self.page == 'details'
-            self.draw_msg(self.app_list[self.current_index]['info'])            
+        else:  # 'details' page
+            self.draw_msg(self.app_list[self.current_index]['info'])
 
+    # Helper to show a message on the LCD screen
     def draw_msg(self, msg:str) -> None:
         clear_screen(self.LCD)
 
-        banner = Group()  
+        banner = Group()
         banner_height = 15
         background = Bitmap(128, banner_height, 1)
         background_palette = Palette(1)
@@ -105,69 +111,45 @@ class AppStore:
         banner.append(os_lb)
 
         app_lb = center_text_y_plane(LCD, center_text_x_plane(LCD, wrap_message(LCD, msg, scale=1)))
-        
+
         self.LCD.root_group.append(banner)
         self.LCD.root_group.append(app_lb)
 
+    # Fetch list of apps from server
     def fetch_apps(self):
-        print("Fetching app list...")
         self.app_list = self.request_app_list()
         self.current_index = 0
         self.draw_menu()
 
-
+    # Coroutine to handle button presses
     async def handle_buttons(self):
         while True:
             btn = await any_button_downup()
             if self.page == "list":
-
-                # Exit store
                 if btn == evt.BTN_A_DOWNUP:
-                    log("Exit")
                     self.draw_msg("Exiting")
                     microcontroller.reset()
-
-                # Go dwon an app
                 elif btn == evt.BTN_B_DOWNUP:
-                    log("Scroll Down")
                     self.current_index = (self.current_index - 1) % len(self.app_list)
-
-                # Go up an app
                 elif btn == evt.BTN_C_DOWNUP:
-                    log("Scroll Up")
                     self.current_index = (self.current_index + 1) % len(self.app_list)
-
-                # Select
                 elif btn == evt.BTN_D_DOWNUP:
-                    log("Select")
                     self.draw_msg("Gathering Details")
                     self.page = "details"
-                
 
             elif self.page == "details":
-                log("Page = details")
-
-                # back
                 if btn == evt.BTN_A_DOWNUP:
-                    log("Back to list")
                     self.draw_msg("Back to list")
                     self.page = "list"
-
-                # Delete app
                 elif btn == evt.BTN_B_DOWNUP:
-                    log("Delete app")
                     self.draw_msg("Deleting app")
                     try:
                         self.delete_selected_app()
                         self.page = "list"
                     except OSError as e:
                         log(f'Delete failed: App {self.app_list[self.current_index]['appName']} not found')
-                    
-                # Get details
                 elif btn == evt.BTN_C_DOWNUP:
-                    log("Does Nothing")
-
-                # install
+                    pass
                 elif btn == evt.BTN_D_DOWNUP:
                     log(f"Installing app {self.app_list[self.current_index]['appName']}")
                     self.draw_msg(f"Installing app {self.app_list[self.current_index]['appName']}")
@@ -176,42 +158,37 @@ class AppStore:
 
             self.draw_menu()
 
-
+    # Install the selected app
     def install_selected_app(self):
         app = self.app_list[self.current_index]
-        print(f"Installing {app["appName"]}...")
         files = self.get_app_files(app["appName"])
         self.download_app(files)
-        print(f"{app["appName"]} installed.")
 
+    # Request app list from server
     def request_app_list(self):
         if wifi.connect_wifi():
-            GET_APP_LIST = 'badge/list_apps'
-            url = wifi.host + GET_APP_LIST
+            url = wifi.host + 'badge/list_apps'
             method = 'GET'
             headers = {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
             }
             body = {
-                'uniqueID' : secrets.UNIQUE_ID
+                'uniqueID': secrets.UNIQUE_ID
             }
             try:
                 rsp = wifi.requests(method=method, url=url, json=body, headers=headers)
                 body = rsp.json()
             except (OSError, RuntimeError, ValueError) as e:
-                print("General connection failure:", e)
+                log("General connection failure:", e)
             return body['apps']
-
-        # Couldn't connect wifi
         else:
             log("Couldn't connect to wifi")
 
-
+    # Request files for a selected app
     def get_app_files(self, app_name:str):
         if wifi.connect_wifi():
-            GET_APP = 'badge/get_app'
-            url = wifi.host + GET_APP
+            url = wifi.host + 'badge/get_app'
             method = 'GET'
             headers = {
                 'Accept': 'application/json',
@@ -225,48 +202,44 @@ class AppStore:
                 rsp = wifi.requests(method=method, url=url, json=body, headers=headers)
                 body = rsp.json()
             except (OSError, RuntimeError, ValueError) as e:
-                print("General connection failure:", e)
+                log("General connection failure:", e)
             return body['files']
-
-        # Couldn't connect wifi
         else:
             log("Couldn't connect to wifi")
 
+    # Download app files
     def download_app(self, download_files:list):
-        log(download_files)
         for file in download_files:
-            log(file)
             if not download_file(file, wifi):
                 log(f"Download failed {file}")
                 return False
-        
         return True
 
+    # Delete selected app from local storage
     def delete_selected_app(self, full_path=None):
         if not full_path:
             path = "/apps/" + self.app_list[self.current_index]["folderName"]
         else:
             path = full_path
-        print(path)
-        
+            
         for entry in os.listdir(path):
             full_path = path + "/" + entry
-            if os.stat(full_path)[0] & 0x4000:  # Directory flag
+            if os.stat(full_path)[0] & 0x4000:  # Directory
                 self.delete_selected_app(full_path)
             else:
                 os.remove(full_path)
         os.rmdir(path)
 
+    # Draw the EPD list screen
     def draw_list_EPD_screen(self):
         clear_screen(self.EPD)
         self.create_button_row(LIST_SCREEN_BUTTONS)
-        page_title = "** Select an App **"
-        pt_lb = Label(font=FONT, text=page_title)
+        pt_lb = Label(font=FONT, text="** Select an App **")
         center_text_x_plane(self.EPD, pt_lb)
         self.EPD.root_group.append(pt_lb)
         self.EPD.refresh()
-        log('draw_list_EPD_screen')
 
+    # Draw EPD screen for app details
     def draw_app_EPD_screen(self):
         clear_screen(self.EPD)
         self.create_button_row(DET_SCREEN_BUTTONS)
@@ -275,12 +248,8 @@ class AppStore:
         center_text_x_plane(self.EPD, pt_lb)
         self.EPD.root_group.append(pt_lb)
         self.EPD.refresh()
-        log("draw_app_EPD_screen")
 
-    def print_app_details(self):
-        log('print_app_details')
-        pass
-
+    # Draw a row of round buttons at the bottom of the screen
     def create_button_row(self, btns:list):
         radius = 5
         splash = Group()
@@ -303,16 +272,15 @@ class AppStore:
 
         self.EPD.root_group.append(splash)
 
-
+    # Run the AppStore interface and event loop
     async def run(self):
         button_tasks = all_tasks()
         evt_tasks = evt.start_tasks()
         self.fetch_apps()
-        log("Apps Fetched")
         await self.handle_buttons()
 
+# Return a random readable hex color (not too dark)
 def random_readable_hex_color(min_brightness=100):
-    """Return a random color in 0xRRGGBB format, avoiding very dark colors."""
     r = random.randint(min_brightness, 255)
     g = random.randint(min_brightness, 255)
     b = random.randint(min_brightness, 255)
@@ -321,18 +289,14 @@ def random_readable_hex_color(min_brightness=100):
 rrhc = random_readable_hex_color
 store = None
 
+# Entry point for async execution
 async def main(wifi:WIFI):
     global store
     store = AppStore(wifi)
     await store.run()
 
+# Run the main event loop
 try:
     asyncio.run(main(wifi))
 except Exception as e:
     epd_print_exception(e)
-
-# This should be called from the main badge entrypoint
-# asyncio.run(main())
-##################################################################################################
-##################################################################################################
-##################################################################################################
