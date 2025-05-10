@@ -1,4 +1,5 @@
 {
   "app_name" : "BLINK",
-  "author" : "padewitt"
+  "author" : "padewitt",
+  "info" : "Make those thingies on top turn on and off again."
 }
