@@ -1,86 +1,156 @@
-import board, random, time, keypad
-import displayio, digitalio, terminalio
+import random
+import displayio
+import terminalio
+import time
 import adafruit_imageload
-from adafruit_display_text import label
-from microcontroller import nvm 
+import json
+from adafruit_display_text.label import Label
+from supervisor import ticks_ms
 
-from badge.constants import EPD_SMALL
+from badge.constants import LCD_WIDTH, LCD_HEIGHT, EPD_SMALL
+from badge.screens import LCD, EPD, center_text_x_plane
 from badge.neopixels import NP
-from badge.screens import center_text_x_plane
+from badge_nvm import nvm_open
+from badge.buttons import a_pressed, b_pressed, c_pressed, d_pressed
+from leaderboard import post_to_leaderboard
 
-class Brick:
-    BRICKS = b'ftqr\xf0'
-    ROTATIONS = [
-        (1, 0, 0, 1, -1, -1),
-        (0, 1, -1, 0, -1, 0),
-        (-1, 0, 0, -1, -2, 0),
-        (0, -1, 1, 0, -2, -1),
-    ]
+TICKS_PERIOD = const(1<<29)
+TICKS_MAX = const(TICKS_PERIOD-1)
+TICKS_HALFPERIOD = const(TICKS_PERIOD//2)
 
-    def __init__(self, kind):
-        self.x = 1
-        self.y = 2
-        self.color = kind % 5 + 1
-        self.rotation = 0
-        self.kind = kind
+def ticks_diff(ticks1, ticks2):
+    "Compute the signed difference between two ticks values, assuming that they are within 2**28 ticks"
+    diff = (ticks1 - ticks2) & TICKS_MAX
+    diff = ((diff + TICKS_HALFPERIOD) & TICKS_MAX) - TICKS_HALFPERIOD
+    return diff
 
-    def draw(self, image, color=None):
-        if color is None:
-            color = self.color
-        data = self.BRICKS[self.kind]
-        rot = self.ROTATIONS[self.rotation]
-        mask = 0x01
-        for y in range(2):
-            y += rot[5]
-            for x in range(4):
-                x += rot[4]
-                if data & mask:
-                    try:
-                        image[self.x + x * rot[0] + y * rot[1],
-                              self.y + x * rot[2] + y * rot[3]] = color
-                    except IndexError:
-                        pass
-                mask <<= 1
+# Colors
+BLOCK_PALETTE  = displayio.Palette(9)
+BLOCK_PALETTE[0] = 0x000000 # BLACK
+BLOCK_PALETTE[1] = 0x282828 # Gray 
+BLOCK_PALETTE[2] = 0x008080 # CYAN
+BLOCK_PALETTE[3] = 0x808000 
+BLOCK_PALETTE[4] = 0x008000
+BLOCK_PALETTE[5] = 0x600080
+BLOCK_PALETTE[6] = 0x800000
+BLOCK_PALETTE[7] = 0x804000
+BLOCK_PALETTE[8] = 0x000080
+BLOCK_COLORS = [2,3,4,5,6,7,8]
 
-    def hit(self, image, dx=0, dy=0, dr=0):
-        data = self.BRICKS[self.kind]
-        rot = self.ROTATIONS[(self.rotation + dr) % 4]
-        mask = 0x01
-        for y in range(2):
-            y += rot[5]
-            for x in range(4):
-                x += rot[4]
-                if data & mask:
-                    try:
-                        if image[self.x + dx + x * rot[0] + y * rot[1],
-                                 self.y + dy + x * rot[2] + y * rot[3]]:
-                            return True
-                    except IndexError:
-                        return True
-                mask <<= 1
-        return False
 
-class TotrisApp:
-    def __init__(self, lcd: ST7735R, epd: EPD):
-        self.lcd = lcd
-        self.epd = epd
-        self.buttons = keypad.Keys((
-            board.BTN1,
-            board.BTN2,
-            board.BTN3,
-            board.BTN4,
-        ), value_when_pressed=False)
-        NP.brightness = 0.1
+# Shapes
+SHAPES = [
+    # Straight
+    [list(".#.."),
+     list(".#.."),
+     list(".#.."),
+     list(".#..")],
 
-    def __del__(self):
-        self.buttons.deinit()
+    # O
+    [list("...."),
+     list(".##."),
+     list(".##."),
+     list("....")],
+
+    # T
+    [list(".#.."),
+     list("###."),
+     list("...."),
+     list("....")],
     
-    def setup(self):
-        pass
+    # J
+    [list(".#.."),
+     list(".#.."),
+     list("##.."),
+     list("....")],
 
-    def run(self):
-        hs = self._get_high_score()
+    # L
+    [list(".#.."),
+     list(".#.."),
+     list(".##."),
+     list("....")],
 
+    # S
+    [list("...."),
+     list(".##."),
+     list("##.."),
+     list("....")],
+
+    # Z
+    [list("...."),
+     list(".##."),
+     list("..##"),
+     list("....")],
+]
+
+class Totremino:
+    def __init__(self, x, y, shape):
+        self.x = x
+        self.y = y
+        self.shape = shape
+        self.color = random.choice(BLOCK_COLORS)
+    
+    def __getitem__(self, item):
+        return self.shape[item]
+
+    @staticmethod
+    def rotate(shape):
+        return list(zip(*shape[::-1]))
+
+class Totris:
+    def __init__(self):
+        self.width = 10
+        self.height = 20
+        self.game_grid = [[0 for _ in range(self.width)] for _ in range(self.height)]
+        self.preview_screen = None
+        self.game_screen = None
+        self.game_score_area = None
+        self.game_score = 0
+        self.level_area = None
+        self.level = 0
+        self.falling_totremino = None
+        self.next_totremino = None
+
+    def is_valid_move(self, tot, x_delta, y_delta):
+        for i, row in enumerate(tot.shape):
+            for j, cell in enumerate(row):
+                try:
+                    new_x = j+tot.x+x_delta
+                    if cell == "#" and ((self.game_grid[i+tot.y+y_delta][new_x] != 0) or new_x < 0):
+                        return False
+                except IndexError:
+                    return False
+        
+        return True
+    
+    def new_tot(self):
+        return Totremino(self.width//2, 0, random.choice(SHAPES))
+    
+    def clear_and_score(self):
+        cleared = 0
+        for i in range(len(self.game_grid)):
+            if all(cell != 0 for cell in self.game_grid[i]):
+                cleared += 1
+                del self.game_grid[i]
+                self.game_grid.insert(0, [0 for _ in range(self.width)])
+        return cleared
+    
+    def lock_tot(self, tot):
+        for i, row in enumerate(tot.shape):
+            for j, cell in enumerate(row):
+                if cell == "#":
+                    self.game_grid[tot.y+i][tot.x+j] = tot.color
+
+    def get_highscore(self):
+        with open("/apps/totris/metadata.json", "r") as f:
+            meta = json.load(f)
+            try:
+                nvm = json.loads(nvm_open(meta["app_name"]))
+                return nvm["score"]
+            except ValueError as e:
+                return 0
+
+    def single_player_start(self):
         epd_root = displayio.Group()
 
         if EPD_SMALL:
@@ -91,33 +161,23 @@ class TotrisApp:
         palette[0] = 0xFFFFFF
         palette[1] = 0x000000
         epd_img = displayio.TileGrid(bmp, pixel_shader=palette)
+
+        hs = self.get_highscore()
         
-        score_label = center_text_x_plane(self.epd, "High Score", y=82)
-        hs_label = center_text_x_plane(self.epd, f"{hs:04}", y=91)
+        score_label = center_text_x_plane(EPD, "High Score", y=82)
+        hs_label = center_text_x_plane(EPD, f"{hs:04}", y=91)
 
         epd_root.append(epd_img)
         epd_root.append(score_label)
         epd_root.append(hs_label)
-        self.epd.root_group = epd_root
-        self.epd.refresh()
+        EPD.root_group = epd_root
+        EPD.refresh()
 
-        while self._start_screen():
-            self._start_game()
-            if self._get_high_score() > hs:
-                hs_label.text = f"hs:04"
-                self.epd.refresh()
-
-    def _get_high_score(self):
-        b = nvm[0:4]
-        return int.from_bytes(b, "big", signed=False)
-
-    def _start_screen(self):
-
-        start_label = label.Label(terminalio.FONT, text="Press S7 to play")
+        start_label = Label(terminalio.FONT, text="Press S7 to play")
         start_label.anchor_point = (0.5, 0.5)
         start_label.anchored_position = (64, 16)
 
-        lights_label = label.Label(terminalio.FONT, text="Press S6 to disable\n  flashing lights")
+        lights_label = Label(terminalio.FONT, text="Press S6 to disable\n  flashing lights")
         lights_label.anchor_point = (0.5, 0.5)
         lights_label.anchored_position = (64, 56)
 
@@ -128,12 +188,12 @@ class TotrisApp:
             lt = "Lights are ON"
             lc = 0x00FF00
 
-        light_indicator = label.Label(terminalio.FONT, text=lt)
+        light_indicator = Label(terminalio.FONT, text=lt)
         light_indicator.anchor_point = (0.5, 0.5)
         light_indicator.anchored_position = (64, 75)
         light_indicator.color = lc
 
-        exit_label = label.Label(terminalio.FONT, text="Press S4 to exit")
+        exit_label = Label(terminalio.FONT, text="Press S4 to exit")
         exit_label.anchor_point = (0.5, 0.5)
         exit_label.anchored_position = (64, 112)
 
@@ -142,150 +202,200 @@ class TotrisApp:
         root.append(lights_label)
         root.append(light_indicator)
         root.append(exit_label)
-        self.lcd.root_group = root
+        LCD.root_group = root
 
-        self.buttons.events.clear()
         while True:
-            event = self.buttons.events.get()
-            if event and event.pressed:
-                if event.key_number == 0:
-                    return True
-                if event.key_number == 1:
-                    if NP.brightness == 0:
-                        NP.brightness = 0.1
-                        light_indicator.color = 0x00FF00
-                        light_indicator.text = "Lights are ON"
-                    else:
-                        NP.brightness = 0
-                        light_indicator.color = 0xFFFF00
-                        light_indicator.text = "Lights are OFF"
-
-                if event.key_number == 3:
-                    return False
+            if a_pressed():
+                return False
+            elif c_pressed():
+                if NP.brightness == 0:
+                    NP.brightness = 0.1
+                    light_indicator.color = 0x00FF00
+                    light_indicator.text = "Lights are ON"
                 else:
-                    pass
+                    NP.brightness = 0
+                    light_indicator.color = 0xFFFF00
+                    light_indicator.text = "Lights are OFF"
+            elif d_pressed():
+                return True
 
-    def _start_game(self):
-        palette = displayio.Palette(6)
-        palette[0] = 0x000000
-        palette[1] = 0xaa0099
-        palette[2] = 0x22aa00
-        palette[3] = 0xee00bb
-        palette[4] = 0xbbee00
-        palette[5] = 0xbb00ee
-        bg_palette = displayio.Palette(2)
+            time.sleep(0.1)
+    
+    def multi_player_start(self):
+        raise NotImplementedError
+
+    def setup_game_screen(self):
+        bg_palette = displayio.Palette(1)
         bg_palette[0] = 0x888888
-        bg_palette[1] = 0x000000
 
-
-        score_label_area = label.Label(terminalio.FONT, text ='Score:')
+        score_label_area = Label(terminalio.FONT, text ='Score:')
         score_label_area.anchor_point = (0.5,0.5)
-        score_label_area.anchored_position = (105, 75)
+        score_label_area.anchored_position = (105, 110)
         score_label_area.color = 0x000000
 
-        score_area = label.Label(terminalio.FONT, text='0000')
-        score_area.anchor_point = (0.5,0.5)
-        score_area.anchored_position = (105, 90)
-        score_area.color = 0x000000
+        self.game_score_area = Label(terminalio.FONT, text='0000')
+        self.game_score_area.anchor_point = (0.5,0.5)
+        self.game_score_area.anchored_position = (105, 120)
+        self.game_score_area.color = 0x000000
+        
+        level_label_area = Label(terminalio.FONT, text="Level:")
+        level_label_area.anchor_point = (0.5,0.5)
+        level_label_area.anchored_position = (105, 75)
+        level_label_area.color = 0x000000
 
-        game_over_area = label.Label(terminalio.FONT, text='    GAME OVER     ')
-        game_over_area.anchor_point = (0.5, 0.5)
-        game_over_area.anchored_position = (64, 64)
-        game_over_area.color = 0xc70000
-        game_over_area.background_color = 0x000000
+        self.level_area = Label(terminalio.FONT, text='1')
+        self.level_area.anchor_point = (0.5,0.5)
+        self.level_area.anchored_position = (105, 85)
+        self.level_area.color = 0x000000
 
-        preview_label_area = label.Label(terminalio.FONT, text='Next')
+
+        preview_label_area = Label(terminalio.FONT, text='Next')
         preview_label_area.anchor_point = (0.5, 0.5)
         preview_label_area.anchored_position = (105, 9)
         preview_label_area.color = 0x000000
 
-        screen = displayio.Bitmap(10, 20, 6)
-        preview = displayio.Bitmap(4, 4, 6)
+        bg_bitmap = displayio.Bitmap(8,8,6)
+        bg = displayio.Group(scale=16)
+        bg.append(displayio.TileGrid(bg_bitmap, pixel_shader=bg_palette, x=0, y=0))
+
+        self.game_screen = displayio.Bitmap(10, 20, 6)
+        self.preview_screen = displayio.Bitmap(4, 4, 6)
         bricks = displayio.Group(scale=8)
-        bricks.append(displayio.TileGrid(screen, pixel_shader=palette, x=0, y=-4))
-        bricks.append(displayio.TileGrid(preview, pixel_shader=palette, x=11, y=2))
-        bg_bitmap = displayio.Bitmap(8, 8, 6)
-        background = displayio.Group(scale=16)
-        background.append(displayio.TileGrid(bg_bitmap, pixel_shader=bg_palette, x=0, y=0))
+        bricks.append(displayio.TileGrid(self.game_screen, pixel_shader=BLOCK_PALETTE, x=0, y=-4))
+        bricks.append(displayio.TileGrid(self.preview_screen, pixel_shader=BLOCK_PALETTE, x=11, y=2))
 
         root = displayio.Group()
-        root.append(background)
-        root.append(score_area)
+        root.append(bg)
         root.append(score_label_area)
+        root.append(self.game_score_area)
+        root.append(level_label_area)
+        root.append(self.level_area)
         root.append(preview_label_area)
         root.append(bricks)
-        self.lcd.root_group = root
+        LCD.root_group = root
+    
+    def game_loop(self):
+        game_tick_time_ms = 5 # Game speed
+        fall_tick_time_ms = 500 # Initial speed for totreminos to decend
+        fall_tick_time_ms_min = 100 # Minimum game speed
+        btn_wait_time_ms = 100 # Time to wait for new button events
 
-        brick = None
-        score = 0
-        next_brick = Brick(random.randint(0, 4))
-        tick = time.monotonic()
+        rot_debounce = False
+        self.level = 1
+        self.game_score = 0
+        total_cleared = 0
+
+        tick = ticks_ms()
+        fall_last_tick = tick
+        btn_last_tick = tick
         while True:
-            if brick is None:
-                score_area.text = (f"{score:04d}")
-                next_brick.draw(preview, 0)
-                brick = next_brick
-                brick.x = screen.width // 2
-                next_brick = Brick(random.randint(0, 4))
-                next_brick.draw(preview)
-                if brick.hit(screen, 0, 0):
-                    break
-            tick += 0.5
-            pressed = 0
-            event = keypad.Event()
-            while True:
-                self.lcd.refresh()
-                time.sleep(0.075)
-                if tick <= time.monotonic():
-                    break
-                brick.draw(screen, 0)
-                while self.buttons.events:
-                    self.buttons.events.get_into(event)
-                    if event.pressed:
-                        pressed |= 1 << event.key_number
-                    else:
-                        pressed &= ~(1 << event.key_number)
-                if pressed & 0x08 and not brick.hit(screen, -1, 0):
-                    brick.x -= 1
-                if pressed & 0x04 and not brick.hit(screen, 1, 0):
-                    brick.x += 1
-                if pressed & 0x02 and not brick.hit(screen, 0, 1):
-                    brick.y += 1
-                if pressed & 0x01 and not brick.hit(screen, 0, 0, 1) and not debounce:
-                    brick.rotation = (brick.rotation + 1) % 4
-                    debounce = True
-                if not pressed:
-                    debounce = False
-                brick.draw(screen)
-            brick.draw(screen, 0)
-            if brick.hit(screen, 0, 1):
-                brick.draw(screen)
-                combo = 0
-                for y in range(screen.height):
-                    for x in range(screen.width):
-                        if not screen[x, y]:
-                            break
-                    else:
-                        combo += 1
-                        score += combo
+            nt = ticks_ms()
+            if ticks_diff(nt, tick) < game_tick_time_ms:
+                continue
+            
+            tick = nt
+            
+            #Check for scoring lines
+            cleared = self.clear_and_score()
+            total_cleared += cleared
+            if cleared:
+                self.game_score += cleared ** 2
+                self.update_score()
 
-                        for _ in range(2):
-                            NP.fill(palette[random.randint(1,5)])
-                            time.sleep(0.1)
-                            NP.fill(0x000000)
-                            time.sleep(0.1)
+                self.level = (total_cleared // 10) + 1  
+                self.update_level()  
 
-                        for yy in range(y, 0, -1):
-                            for x in range(screen.width):
-                                screen[x, yy] = screen[x, yy - 1]
-                brick = None
-            else:
-                brick.y += 1
-                brick.draw(screen)
+                self.blinka(cleared)
+            
+            if ticks_diff(tick, btn_last_tick) >= btn_wait_time_ms:
+                btn_last_tick = tick
+                if a_pressed():
+                    if self.is_valid_move(self.falling_totremino, -1, 0):
+                        self.falling_totremino.x -= 1
+                        self.update_game_screen()
+                if b_pressed():
+                    if self.is_valid_move(self.falling_totremino, 1, 0):
+                        self.falling_totremino.x += 1
+                        self.update_game_screen()
+                if c_pressed():
+                    if self.is_valid_move(self.falling_totremino, 0, 1):
+                        self.falling_totremino.y += 1
+                        self.update_game_screen()
+                if d_pressed():
+                    if not rot_debounce:
+                        rot_debounce = True
+                        cur_shape = self.falling_totremino.shape
+                        self.falling_totremino.shape = self.falling_totremino.rotate(cur_shape)
+                        if self.is_valid_move(self.falling_totremino, 0, 0):
+                            self.update_game_screen()
+                        else:
+                            self.falling_totremino.shape = cur_shape
+                else:
+                    rot_debounce = False
 
-        root.append(game_over_area)
-        if score > self._get_high_score():
-            b = score.to_bytes(4, "big", signed=False)
-            nvm[0:4] = b
+            if ticks_diff(tick, fall_last_tick) >= int(max(fall_tick_time_ms * (1-((self.level - 1) * 0.1)), fall_tick_time_ms_min)):
+                if self.is_valid_move(self.falling_totremino, 0, 1):
+                    self.falling_totremino.y += 1
+                else:
+                    self.lock_tot(self.falling_totremino)
+                    self.falling_totremino = self.next_totremino
+                    self.next_totremino = self.new_tot()
+                    self.update_game_preview()
+                    if not self.is_valid_move(self.falling_totremino, 0, 0):
+                        break
+                fall_last_tick = tick
+                self.update_game_screen()
+    
+    def update_game_preview(self):
+        for y in range(4):
+            for x in range(4):
+                if self.next_totremino[y][x] == '#':
+                    self.preview_screen[x, y] = self.next_totremino.color
+                else:
+                    self.preview_screen[x, y] = 0
 
-        time.sleep(4)
+    def update_game_screen(self):
+        for y, row in enumerate(self.game_grid):
+            for x, cell in enumerate(row):
+                self.game_screen[x, y] = cell
+        for y in range(4):
+            for x in range(4):
+                if self.falling_totremino[y][x] == '#':
+                    self.game_screen[x+self.falling_totremino.x, y+self.falling_totremino.y] = self.falling_totremino.color
+    
+    def update_score(self):
+        self.game_score_area.text = f"{self.game_score:04d}"
+
+    def update_level(self):
+        self.level_area.text = f"{self.level}"
+    
+    def blinka(self, cleared):
+        for _ in range(cleared):
+            NP.fill(random.choice(BLOCK_PALETTE))
+            time.sleep(0.1)
+            NP.fill(0x000000)
+            time.sleep(0.1)
+
+    def single_player_game(self):
+        while self.single_player_start():
+            self.setup_game_screen()
+            self.falling_totremino = self.new_tot()
+            self.next_totremino = self.new_tot()
+            self.update_game_preview()
+            self.update_game_screen()
+
+            self.game_loop()
+            game_over_area = Label(terminalio.FONT, text='    GAME OVER     ')
+            game_over_area.anchor_point = (0.5, 0.5)
+            game_over_area.anchored_position = (64, 64)
+            game_over_area.color = 0xc70000
+            game_over_area.background_color = 0x000000
+            LCD.root_group.append(game_over_area)
+            time.sleep(3)
+            post_to_leaderboard(self.game_score)
+
+    def multi_player_game(self):
+        raise NotImplementedError
+
+    def run(self):
+        self.single_player_game()

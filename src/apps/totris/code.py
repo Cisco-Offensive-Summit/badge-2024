@@ -1,11 +1,9 @@
 import supervisor
-import badge.screens
-from apps.totris.totris import TotrisApp
-
 supervisor.runtime.autoreload = False
+from apps.totris.totris import Totris
+
 try:
-    tot = TotrisApp(badge.screens.LCD, badge.screens.EPD)
-    tot.run()
+    Totris().run()
 except Exception as e:
     badge.screens.epd_print_exception(e)
 
