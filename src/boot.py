@@ -4,9 +4,11 @@ import json
 import microcontroller
 import storage
 import supervisor
+import os
 from badge_nvm import nvm_open                                                                                     
 from time import sleep
 from badge.screens import EPD
+from badge.screens import LCD
 from badge.screens import center_text_x_plane
 from badge.screens import center_text_y_plane
 from badge.screens import clear_screen
@@ -18,6 +20,7 @@ from displayio import Group
 from terminalio import FONT
 from adafruit_display_text.label import Label
 
+#os.rename("boot_out.txt", "boot_out.txt.bak")
 
 ###############################################################################
 
@@ -37,6 +40,10 @@ BTN1 = digitalio.DigitalInOut(board.BTN1)
 BTN1.direction = digitalio.Direction.INPUT
 BTN1.pull = digitalio.Pull.UP
 
+BTN2 = digitalio.DigitalInOut(board.BTN2)
+BTN2.direction = digitalio.Direction.INPUT
+BTN2.pull = digitalio.Pull.UP
+
 BTN3 = digitalio.DigitalInOut(board.BTN3)
 BTN3.direction = digitalio.Direction.INPUT
 BTN3.pull = digitalio.Pull.UP
@@ -53,13 +60,37 @@ if not BTN1.value and not BTN4.value:
     microcontroller.reset()
 
 ###############################################################################
+# Hold BTN1 and BTN2 during reboot to do the OTA
+###############################################################################
+if not BTN1.value and not BTN2.value:
+    storage.remount("/", readonly=False, disable_concurrent_write_protection=False)
+
+    from badge.wifi import WIFI
+    from badge.utils import download_file
+    import json
+
+    headers = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+    }
+
+    wifi = WIFI()
+    if wifi.connect_wifi():
+        rsp = wifi.requests(method='GET',url=wifi.host+'badge/OTA',headers=headers)
+        files = rsp.json()['files']
+
+        i = 1
+        total = len(files)
+        for file in files:
+            print(f'Downloading file {i} of {total}')
+            i +=1
+            if not download_file(file, wifi):
+                print(f'Failed to download file {file}')
+            
+###############################################################################
 # Hold BTN4 and BTN3 during reboot to GET a TOKEN
 ###############################################################################
-# TODO:
-#
-#This whole section need to be fixed for the new EPD screen.
-###############################################################################
-if not BTN4.value and not BTN3.value:
+if not BTN3.value and not BTN4.value:
   storage.remount("/", readonly=False, disable_concurrent_write_protection=False)
   from get_token import get_token
   success = get_token()
