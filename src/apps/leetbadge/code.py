@@ -13,24 +13,27 @@ Hint: imagemagick makes the bit depth and format conversion easy, but it is
 probably best to start with images of the correct dimensions:
 
 2025 Small Screen Badge:    
-    convert -depth 1 -resize 128x96\!  epd_logo.png /Volumes/CIRCUITPY/img/my_epd_logo.png
-    convert -depth 8 -resize 128x128\! lcd_logo.png /Volumes/CIRCUITPY/img/my_lcd_logo.png
+    magick -depth 1 -compress none -resize 128x96\!  epd_logo.png /Volumes/CIRCUITPY/img/my_epd_logo.png
+    magick -depth 8 -compress none -resize 128x128\! lcd_logo.png /Volumes/CIRCUITPY/img/my_lcd_logo.png
 
 2024 Large Screen Badge:    
-    convert -depth 1 -resize 200x96\!  epd_logo.png /Volumes/CIRCUITPY/img/my_epd_logo.png
-    convert -depth 8 -resize 128x128\! lcd_logo.png /Volumes/CIRCUITPY/img/my_lcd_logo.png
+    magick -depth 1 -compress none -resize 200x96\!  epd_logo.png /Volumes/CIRCUITPY/img/my_epd_logo.png
+    magick -depth 8 -compress none -resize 128x128\! lcd_logo.png /Volumes/CIRCUITPY/img/my_lcd_logo.png
 """
 
 import asyncio, supervisor, time
+
+from badge.constants import EPD_SMALL
 from badge.fileops import is_file
 from badge.neopixels import set_neopixels, neopixels_off
 from badge.screens import LCD, EPD, clear_screen, epd_print_exception
 from displayio import Group, OnDiskBitmap, Palette, TileGrid
 
-IMG_DIR = '/img'
+EPD_CUSTOM_IMAGE = '/img/my_epd_logo.bmp'
+EPD_LARGE_IMAGE = '/img/epd_logo.bmp'
+EPD_SMALL_IMAGE = '/apps/leetbadge/img/epd_logo_small.bmp'
 
-EPD_IMAGES = ['my_epd_logo.bmp', 'epd_logo.bmp']
-LCD_IMAGES = ['my_lcd_logo.bmp']
+LCD_CUSTOM_IMAGE = '/img/my_lcd_logo.bmp'
 
 ONE_THIRD = 1.0 / 3.0
 ONE_SIXTH = 1.0 / 6.0
@@ -69,36 +72,40 @@ def make_color(h):
 
 
 def draw_lcd_screen():
-    for fn in LCD_IMAGES:
-        path = f"{IMG_DIR}/{fn}"
-        if is_file(path):
-            clear_screen(LCD)
-            group = Group()  
-            bitmap = OnDiskBitmap(path)
-            tile_grid = TileGrid(bitmap, pixel_shader=bitmap.pixel_shader)
-            group.append(tile_grid)
-            LCD.root_group = group
-            return
+    path = LCD_CUSTOM_IMAGE
+    if is_file(path):
+        clear_screen(LCD)
+        group = Group()
+        bitmap = OnDiskBitmap(path)
+        tile_grid = TileGrid(bitmap, pixel_shader=bitmap.pixel_shader)
+        group.append(tile_grid)
+        LCD.root_group = group
+        return
 
     #       123456789012345678901")
     print("LeetBadge - pgiblock")
     print("="*21)
     print("For custom art add:")
-    print(f"{IMG_DIR}/{EPD_IMAGES[0]}")
-    print(f"{IMG_DIR}/{LCD_IMAGES[0]}")
+    print(EPD_CUSTOM_IMAGE)
+    print(LCD_CUSTOM_IMAGE)
 
 
 def draw_epd_screen():
-    for fn in EPD_IMAGES:
-        path = f"{IMG_DIR}/{fn}"
-        if is_file(path):
-            bitmap = OnDiskBitmap(path)
-            tile_grid = TileGrid(bitmap, pixel_shader=bitmap.pixel_shader)
-            group = Group()  
-            group.append(tile_grid)
-            EPD.root_group = group
-            EPD.refresh()
-            return
+    path = EPD_CUSTOM_IMAGE
+    if not is_file(path):
+        if EPD_SMALL:
+            path = EPD_SMALL_IMAGE
+        else:
+            path = EPD_LARGE_IMAGE
+
+    if is_file(path):
+        bitmap = OnDiskBitmap(path)
+        tile_grid = TileGrid(bitmap, pixel_shader=bitmap.pixel_shader)
+        group = Group()
+        group.append(tile_grid)
+        EPD.root_group = group
+        EPD.refresh()
+        return
 
 
 async def init_screens():
@@ -133,7 +140,7 @@ try:
     asyncio.run(main())
 except Exception as e:
     epd_print_exception(e)
-    EPD.draw()
+    EPD.refresh()
     time.sleep(60)
 
 supervisor.reload()
