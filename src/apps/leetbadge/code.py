@@ -1,4 +1,6 @@
 """
+Leet Badge by Paul Giblock
+
 A more leeter ID badge.  This makes it easy to draw an image of your choosing to the e-ink
 and LCD screens simultaneously.  In addition, you get scrolling rainbow LEDs on top.  This
 is intentionally simple and noninteractive.
@@ -10,16 +12,20 @@ to running.
 Hint: imagemagick makes the bit depth and format conversion easy, but it is
 probably best to start with images of the correct dimensions:
 
+2025 Small Screen Badge:    
+    convert -depth 1 -resize 128x96\!  epd_logo.png /Volumes/CIRCUITPY/img/my_epd_logo.png
+    convert -depth 8 -resize 128x128\! lcd_logo.png /Volumes/CIRCUITPY/img/my_lcd_logo.png
+
+2024 Large Screen Badge:    
     convert -depth 1 -resize 200x96\!  epd_logo.png /Volumes/CIRCUITPY/img/my_epd_logo.png
     convert -depth 8 -resize 128x128\! lcd_logo.png /Volumes/CIRCUITPY/img/my_lcd_logo.png
 """
 
-import adafruit_imageload
 import asyncio, supervisor, time
 from badge.fileops import is_file
 from badge.neopixels import set_neopixels, neopixels_off
-from badge.screens import LCD, EPD, clear_lcd_screen, epd_print_exception
-from displayio import Group, Bitmap, Palette, TileGrid
+from badge.screens import LCD, EPD, clear_screen, epd_print_exception
+from displayio import Group, OnDiskBitmap, Palette, TileGrid
 
 IMG_DIR = '/img'
 
@@ -66,21 +72,32 @@ def draw_lcd_screen():
     for fn in LCD_IMAGES:
         path = f"{IMG_DIR}/{fn}"
         if is_file(path):
-            clear_lcd_screen(LCD.root_group)
+            clear_screen(LCD)
             group = Group()  
-            bitmap, palette = adafruit_imageload.load(path, bitmap=Bitmap, palette=Palette)
-            tile_grid = TileGrid(bitmap, pixel_shader=palette)
+            bitmap = OnDiskBitmap(path)
+            tile_grid = TileGrid(bitmap, pixel_shader=bitmap.pixel_shader)
             group.append(tile_grid)
             LCD.root_group = group
+            return
+
+    #       123456789012345678901")
+    print("LeetBadge - pgiblock")
+    print("="*21)
+    print("For custom art add:")
+    print(f"{IMG_DIR}/{EPD_IMAGES[0]}")
+    print(f"{IMG_DIR}/{LCD_IMAGES[0]}")
 
 
 def draw_epd_screen():
     for fn in EPD_IMAGES:
         path = f"{IMG_DIR}/{fn}"
         if is_file(path):
-            EPD.fill(0)
-            EPD.image(path)
-            EPD.draw()
+            bitmap = OnDiskBitmap(path)
+            tile_grid = TileGrid(bitmap, pixel_shader=bitmap.pixel_shader)
+            group = Group()  
+            group.append(tile_grid)
+            EPD.root_group = group
+            EPD.refresh()
             return
 
 
