@@ -90,6 +90,23 @@ if not BTN1.value and not BTN2.value:
 ###############################################################################
 # Hold BTN4 and BTN3 during reboot to GET a TOKEN
 ###############################################################################
+try:
+  from secrets import UNIQUE_ID
+except ImportError as e:
+  storage.remount("/", readonly=False, disable_concurrent_write_protection=False)
+  from get_token import get_token
+  success = get_token()
+  if success:
+    nobody = center_text_y_plane(EPD, center_text_x_plane(EPD, Label(font=FONT, text='nobody', scale=2)))
+    clear_screen(EPD)
+    EPD.root_group.append(nobody)
+    EPD.refresh()
+    while True:
+      pass
+
+  else:
+    sleep(600)
+
 if not BTN3.value and not BTN4.value:
   storage.remount("/", readonly=False, disable_concurrent_write_protection=False)
   from get_token import get_token
