@@ -23,15 +23,18 @@ probably best to start with images of the correct dimensions:
 
 import asyncio, random, supervisor, time
 
+from adafruit_display_text.label import Label
+from adafruit_display_text.text_box import TextBox
+from displayio import Group, OnDiskBitmap, Palette, TileGrid
+from terminalio import FONT
+
 import badge.events as events
 import badge.buttons as buttons
-
-from badge.constants import EPD_SMALL
+from badge.constants import EPD_SMALL, BLACK, BLUE, WHITE, YELLOW, MAGENTA
 from badge.fileops import is_file
 from badge.neopixels import set_neopixels, neopixels_off
 from badge.screens import LCD, EPD, clear_screen, epd_print_exception
 
-from displayio import Group, OnDiskBitmap, Palette, TileGrid
 from leaderboard import post_to_leaderboard
 
 EPD_CUSTOM_IMAGE = '/img/my_epd_logo.bmp'
@@ -46,8 +49,6 @@ LCD_CUSTOM_IMAGE = '/img/my_lcd_logo.bmp'
 ONE_THIRD = 1.0 / 3.0
 ONE_SIXTH = 1.0 / 6.0
 TWO_THIRD = 2.0 / 3.0
-
-dimmer = 1.0
 
 def hsl_to_rgb(hue, sat, light):
     """
@@ -85,17 +86,71 @@ def make_color(h):
     """
     Convert a hue (1.0 = 360 degrees) to 24bit RGB integer
     """
+    global dimmer
+
     brightness = 0.5 * dimmer
     r, g, b = hsl_to_rgb(h, 1.0, brightness)
     return (r << 16) | (g << 8) | (b)
 
-def random_color(brightness=64):
-    brightness = int(dimmer * brightness)
+def random_color(brightness=128):
     """Generate a random RGB color, dimmed by brightness."""
-    r, g, b = tuple(random.randint(0, brightness) for _ in range(3))
+    global dimmer
+
+    # Scale given brightness by dimmer val
+    brightness = dimmer * (float(brightness)/256.0)
+    # Any color will do
+    hue = random.random()
+    # Favor more saturated colors
+    if random.randint(0, 3) == 0:
+        saturation = random.uniform(0.2, 0.75)
+    else:
+        saturation = random.uniform(0.75, 1.0)
+
+    r, g, b = hsl_to_rgb(hue, saturation, brightness)
     return (r << 16) | (g << 8) | (b)
 
 #################################
+
+def draw_lcd_splash():
+    clear_screen(LCD)
+
+    title_lbl = TextBox(
+        FONT,
+        text="LeetBadge v1.1",
+        width=LCD.width,
+        height=TextBox.DYNAMIC_HEIGHT,
+        align=TextBox.ALIGN_CENTER,
+        color=YELLOW,
+        background_color=BLUE)
+    title_lbl.x = 0
+    title_lbl.y = 6
+
+    pgiblock_lbl = Label(
+        FONT,
+        text ="PGI\nBLOCK",
+        padding_top = 18,
+        padding_left = 4,
+        padding_bottom = 3,
+        padding_right = 12,
+        color=WHITE,
+        background_color=0x7CC343)
+    pgiblock_lbl.x = 80
+    pgiblock_lbl.y = 90
+
+    instruct_lbl = Label(
+        FONT,
+        text = f"For custom art add:\n{EPD_CUSTOM_IMAGE}\n{LCD_CUSTOM_IMAGE}\n\nEnjoy!",
+        color=WHITE)
+    instruct_lbl.x = 2
+    instruct_lbl.y = 20
+
+    group = Group()
+    group.append(title_lbl)
+    group.append(pgiblock_lbl)
+    group.append(instruct_lbl)
+    group.append(status_lbl)
+    LCD.root_group = group
+
 
 def draw_lcd_screen():
     """
@@ -104,20 +159,16 @@ def draw_lcd_screen():
 
     path = LCD_CUSTOM_IMAGE
     if is_file(path):
-        clear_screen(LCD)
         group = Group()
         bitmap = OnDiskBitmap(path)
         tile_grid = TileGrid(bitmap, pixel_shader=bitmap.pixel_shader)
         group.append(tile_grid)
-        LCD.root_group = group
-        return
 
-    #       123456789012345678901")
-    print("LeetBadge - pgiblock")
-    print("="*21)
-    print("For custom art add:")
-    print(EPD_CUSTOM_IMAGE)
-    print(LCD_CUSTOM_IMAGE)
+        # Odd thing here is moving the status to our new group
+        LCD.root_group.remove(status_lbl)
+        group.append(status_lbl)
+
+        LCD.root_group = group
 
 
 def draw_epd_screen():
@@ -146,9 +197,8 @@ async def init_screens():
     """
     We don't ever redraw the screen, so this clears and paints them
     """
-
-    draw_lcd_screen()
     draw_epd_screen()
+    draw_lcd_screen()
 
 
 #################################
@@ -231,10 +281,10 @@ async def uberblinken_burst_controller(state, lock):
     Occasionally triggers a subtle burst effect to simulate activity.
     """
     while True:
-        await asyncio.sleep(random.uniform(5, 12))  # More time between bursts
+        await asyncio.sleep(random.uniform(5, 10))  # Time between bursts
 
-        burst_color = random_color(48)
-        burst_count = random.randint(2, 4)  # Fewer flashes
+        burst_color = random_color(96)
+        burst_count = random.randint(2, 8)  # How many flashes
 
         for _ in range(burst_count):
             for i in range(4):
@@ -274,7 +324,7 @@ async def lights_out():
     set_neopixels(0x000000, 0x000000, 0x000000, 0x000000)
 
     try:
-        post_to_leaderboard(5)
+        post_to_leaderboard(6)
     except:
         pass
 
@@ -283,6 +333,8 @@ async def lights_out():
 
 
 #################################
+
+# Our disgusting globals
 
 animations = {
     "rainbow": rainbow_scroller,
@@ -294,28 +346,58 @@ animations = {
 current_animation_task = None
 current_animation_name = None
 
+dimmer = 1.0
+
+status_lbl = Label(
+        FONT,
+        text="",
+        color=WHITE,
+        background_color=MAGENTA,
+        padding_left=1,
+        x=2,
+        y=123)
+
+status_hide_task = None
+
+
+#################################
 
 async def switch_animation(name):
-    global current_animation_task, current_animation_name, dimmer
+    global current_animation_task, current_animation_name, status_hide_task, dimmer
 
     if name == current_animation_name:
-        dimmer = dimmer - 0.34
+        # Already running: change brightness
+        dimmer = dimmer - 0.25
         if dimmer <=  0.0:
             dimmer = 1.0
-        return  # already running
+    else:
+        # Different mode: change mode and reset brightness
 
-    if current_animation_task:
-        current_animation_task.cancel()
-        try:
-            await current_animation_task
-        except asyncio.CancelledError:
-            pass
+        # Kill existing one (if any)
+        if current_animation_task:
+            current_animation_task.cancel()
+            try:
+                await current_animation_task
+            except asyncio.CancelledError:
+                pass
 
-    print(name)
-    dimmer = 1.0
-    current_animation_name = name
-    current_animation_task = asyncio.create_task(animations[name]())
+        # New operation
+        dimmer = 1.0
+        current_animation_name = name
+        current_animation_task = asyncio.create_task(animations[name]())
 
+    status = f"{name} ({int(dimmer*100)}%)"
+    print(status)
+    status_lbl.text = status
+
+    # Reset status timer
+    if status_hide_task:
+        status_hide_task.cancel()
+    status_hide_task = asyncio.create_task(hide_status_later())
+
+async def hide_status_later():
+    await asyncio.sleep(2.0)
+    status_lbl.text = ''
 
 async def handle_buttons():
     while True:
@@ -331,6 +413,9 @@ async def handle_buttons():
 
 
 async def main():
+    # Loading..
+    draw_lcd_splash()
+
     # Start default animation tasks
     await switch_animation("rainbow")
 
