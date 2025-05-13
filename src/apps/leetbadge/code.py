@@ -68,6 +68,11 @@ def hsl_to_rgb(hue, sat, light):
     )
 
 
+def rgb_to_24bit(rgb):
+    r, g, b = rgb
+    return (r << 16) | (g << 8) | b
+
+
 def _v(chroma1, chroma2, hue):
     """
     HSL value mapping helper
@@ -89,8 +94,8 @@ def make_color(h):
     global dimmer
 
     brightness = 0.5 * dimmer
-    r, g, b = hsl_to_rgb(h, 1.0, brightness)
-    return (r << 16) | (g << 8) | (b)
+    rgb = hsl_to_rgb(h, 1.0, brightness)
+    return rgb_to_24bit(rgb)
 
 def random_color(brightness=128):
     """Generate a random RGB color, dimmed by brightness."""
@@ -106,8 +111,8 @@ def random_color(brightness=128):
     else:
         saturation = random.uniform(0.75, 1.0)
 
-    r, g, b = hsl_to_rgb(hue, saturation, brightness)
-    return (r << 16) | (g << 8) | (b)
+    rgb = hsl_to_rgb(hue, saturation, brightness)
+    return rgb_to_24bit(rgb)
 
 #################################
 
@@ -200,6 +205,9 @@ async def init_screens():
     draw_epd_screen()
     draw_lcd_screen()
 
+
+# FIXME TODO: I wasn't expecting so many animations.  I should break these into classes...
+# This project is entirely feature creep
 
 #################################
 
@@ -316,6 +324,47 @@ async def uberblinkenlights():
 
 #################################
 
+async def knight_rider(speed=0.1, trail_decay=0.4):
+    """
+    A Knight Rider / Larson scanner animation.
+    One bright pixel moves back and forth across the 4 LEDs, leaving a fading trail.
+    """
+
+    hue = random.random()  # random hue
+    state = [0.0] * 4  # Lightness per LED
+
+    try:
+        while True:
+            # Sweep forward
+            for i in range(4):
+                update_larson_trail(state, i, trail_decay, hue)
+                await asyncio.sleep(speed)
+
+            # Sweep backward
+            for i in reversed(range(1, 3)):
+                update_larson_trail(state, i, trail_decay, hue)
+                await asyncio.sleep(speed)
+
+            hue = (hue + 0.01) % 1.0
+
+    except asyncio.CancelledError:
+        set_neopixels(0, 0, 0, 0)
+        raise
+
+
+def update_larson_trail(state, pos, decay, hue):
+    """Update the light state with a new bright position and faded trail."""
+    for i in range(len(state)):
+        state[i] *= decay
+    state[pos] = 0.5 * dimmer
+
+    saturation = 1.0
+    colors = [hsl_to_rgb(hue, saturation, l) for l in state]
+    set_neopixels(*[rgb_to_24bit(c) for c in colors])
+
+
+#################################
+
 async def lights_out():
     """
     Quiet time
@@ -336,15 +385,16 @@ async def lights_out():
 
 # Our disgusting globals
 
-animations = {
-    "rainbow": rainbow_scroller,
-    "uberblinken": uberblinkenlights,
-    "blinkenlights": blinkenlights,
-    "lights out": lights_out,
-}
+animations = [
+    ("Rainbow", rainbow_scroller),
+    ("Uberblinken", uberblinkenlights),
+    ("Blinkenlights", blinkenlights),
+    ("Knight Rider", knight_rider),
+    ("Lights Out", lights_out),
+]
 
 current_animation_task = None
-current_animation_name = None
+current_animation_index = None
 
 dimmer = 1.0
 
@@ -362,30 +412,55 @@ status_hide_task = None
 
 #################################
 
-async def switch_animation(name):
-    global current_animation_task, current_animation_name, status_hide_task, dimmer
+async def switch_animation(index=None):
+    global current_animation_task, current_animation_index
 
-    if name == current_animation_name:
-        # Already running: change brightness
-        dimmer = dimmer - 0.25
-        if dimmer <=  0.0:
-            dimmer = 1.0
-    else:
-        # Different mode: change mode and reset brightness
+    # Move to next animation by default
+    if index == None:
+        index = (current_animation_index+1) % len(animations)
 
-        # Kill existing one (if any)
-        if current_animation_task:
-            current_animation_task.cancel()
-            try:
-                await current_animation_task
-            except asyncio.CancelledError:
-                pass
+    index = min(index, len(animations) - 1)
+    animation_name, animation_func = animations[index]
 
-        # New operation
+    if index == current_animation_index:
+        # Already running
+        return
+
+    # Kill existing one (if any)
+    if current_animation_task:
+        current_animation_task.cancel()
+        try:
+            await current_animation_task
+        except asyncio.CancelledError:
+            pass
+
+    # New operation
+    current_animation_index = index
+    current_animation_task = asyncio.create_task(animation_func())
+
+    show_status()
+
+
+def cycle_dimmer():
+    global dimmer
+
+    # Already running: change brightness
+    dimmer = dimmer - 0.25
+    if dimmer <=  0.0:
         dimmer = 1.0
-        current_animation_name = name
-        current_animation_task = asyncio.create_task(animations[name]())
 
+    show_status()
+
+
+def toggle_lcd():
+    grp = LCD.root_group
+    grp.hidden = not grp.hidden
+
+
+def show_status():
+    global status_hide_task
+
+    name, _ = animations[current_animation_index]
     status = f"{name} ({int(dimmer*100)}%)"
     print(status)
     status_lbl.text = status
@@ -395,21 +470,21 @@ async def switch_animation(name):
         status_hide_task.cancel()
     status_hide_task = asyncio.create_task(hide_status_later())
 
+
 async def hide_status_later():
     await asyncio.sleep(2.0)
     status_lbl.text = ''
+
 
 async def handle_buttons():
     while True:
         btn = await buttons.any_button_downup()
         if btn == events.BTN_A_DOWNUP:
-            await switch_animation("rainbow")
+            await switch_animation()
         elif btn == events.BTN_B_DOWNUP:
-            await switch_animation("uberblinken")
-        elif btn == events.BTN_C_DOWNUP:
-            await switch_animation("blinkenlights")
+            cycle_dimmer()
         elif btn == events.BTN_D_DOWNUP:
-            await switch_animation("lights out")
+            toggle_lcd()
 
 
 async def main():
@@ -417,7 +492,7 @@ async def main():
     draw_lcd_splash()
 
     # Start default animation tasks
-    await switch_animation("rainbow")
+    await switch_animation(0)
 
     # Event/button handling tasks
     button_tasks = buttons.all_tasks()
