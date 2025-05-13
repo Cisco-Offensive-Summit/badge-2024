@@ -174,9 +174,9 @@ class SequencerApp:
         # BCK -- RXD  -- board.GPIO44 (P1 connector RXD)
         # 3.3V -- V+  -- P1 connector V+ (or power module V+)
         # GND -- GND  -- P1 connector GND (or power modules GND)
-        i2s_bck_pin = board.GPIO44 # BCK pin
-        i2s_lck_pin = board.GPIO4 # LCK pin
-        i2s_dat_pin = board.GPIO43 # DIN pin
+        i2s_bck_pin = board.GPIO40 # BCK pin
+        i2s_lck_pin = board.GPIO46 # LCK pin
+        i2s_dat_pin = board.GPIO39 # DIN pin
         i2s = audiobusio.I2SOut(bit_clock=i2s_bck_pin,word_select=i2s_lck_pin,data=i2s_dat_pin)
 
 
