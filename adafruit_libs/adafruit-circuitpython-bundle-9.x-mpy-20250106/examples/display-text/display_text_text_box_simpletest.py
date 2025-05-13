@@ -28,13 +28,12 @@ main_group.append(left_text_area)
 center_text = ("center center center " * 2).rstrip()
 center_text_area = TextBox(
     terminalio.FONT,
-    190,
-    TextBox.DYNAMIC_HEIGHT,
-    align=TextBox.ALIGN_CENTER,
     text=center_text,
+    width=LCD.width,
+    height=TextBox.DYNAMIC_HEIGHT,
+    align=TextBox.ALIGN_CENTER,
     background_color=0x00FF00,
-    color=0x000000,
-    scale=1,
+    color=0x000000
 )
 
 center_text_area.x = 10
