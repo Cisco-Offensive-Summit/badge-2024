@@ -10,7 +10,7 @@ Print to EPD screen
 Illuminate Neopixel LEDs (and set brightness)  
 Button test (report to TFT screen)  
 
-#### *** Note that this sketch is intended to show how to  program the 2024 Offensive Summit Badge in an Arduino C code environment.  The original 2024 badge firmware that was installed when you received the badge uses Circuit Python and details for programming the 2024 Offensive Summit Badge using python can be found [here](https://github.com/Cisco-Offensive-Summit/badge-2024/tree/main/firmware).  
+#### *** Note that this sketch is intended to show how to  program the 2024-2025 Offensive Summit Badge in an Arduino C code environment.  The original 2024 badge firmware that was installed when you received the badge uses Circuit Python and details for programming the 2024 Offensive Summit Badge using python can be found [here](https://github.com/Cisco-Offensive-Summit/badge-2024/tree/main/firmware).  
 
 #### You will need the files in the /libraries directory; copy these to your local /Arduino/libraries directory before compiling.  
 
