@@ -1,4 +1,6 @@
-### OS_BADGE_2024_Example
+### OS_BADGE_2025_Example is for the 2025 badge with the 1.44 inch 128x96 pixel monochrome display by Pervasive (E2144CS021)
+
+### OS_BADGE_2024_Example is for the 2024 badge with the 2 inch 200x96 pixel monochrome display by Pervasive (E2200CS021)
 
 #### An Arduino C code example sketch created in Arduino IDE 2.3.2 that demonstrates the 2024 badge peripherals:  
 Blink the Orange LED  
