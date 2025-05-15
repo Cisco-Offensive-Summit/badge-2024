@@ -2,7 +2,7 @@
 
 ### OS_BADGE_2024_Example is for the 2024 badge with the 2 inch 200x96 pixel monochrome display by Pervasive (E2200CS021)
 
-#### An Arduino C code example sketch created in Arduino IDE 2.3.2 that demonstrates the 2024 badge peripherals:  
+#### An Arduino C code example sketch created in Arduino IDE 2.3.2 that demonstrates the 2024-2025 badge peripherals:  
 Blink the Orange LED  
 Print to TFT screen  
 PWM TFT backlight brightness control  
